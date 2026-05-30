@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DCF Valuation Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0b1a0e; --bg2:#0f2214; --panel:#1a3320; --panel2:#1f3d27;
+  --border:#2a4d33; --border2:rgba(42,77,51,0.5);
+  --green:#2dff7a; --green2:#1adb5f; --green-dim:rgba(45,255,122,0.1); --green-glow:rgba(45,255,122,0.25);
+  --amber:#ffb830; --amber-dim:rgba(255,184,48,0.1);
+  --red:#ff5c5c; --red-dim:rgba(255,92,92,0.1);
+  --blue:#5be0ff; --blue-dim:rgba(91,224,255,0.1);
+  --text:#c8e6cc; --text-dim:#6a8f72; --text-bright:#e8f5ea;
+  --fh:'Syne',sans-serif; --fd:'DM Serif Display',serif; --fm:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--fm);font-size:13px;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(45,255,122,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(45,255,122,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px;position:relative;z-index:1}
+
+/* HEADER */
+header{padding:36px 0 28px;border-bottom:1px solid var(--border);margin-bottom:28px}
+.eyebrow{font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--green);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.eyebrow::before{content:'';display:inline-block;width:24px;height:2px;background:var(--green)}
+h1{font-family:var(--fd);font-size:clamp(26px,4.5vw,44px);color:var(--text-bright);line-height:1.1;margin-bottom:6px}
+h1 .ticker-display{color:var(--green);transition:all .3s}
+.header-meta{display:flex;gap:20px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:11px;color:var(--text-dim)}
+.tag{background:var(--green-dim);border:1px solid var(--border);color:var(--green);padding:2px 8px;border-radius:2px;font-size:10px;font-weight:500;letter-spacing:.1em}
+.generated-at{font-size:10px;color:var(--text-dim);margin-left:auto}
+
+/* TICKER SEARCH */
+.ticker-search-bar{display:flex;gap:12px;align-items:center;margin-bottom:28px;padding:16px 20px;background:var(--panel);border:1px solid var(--border);border-radius:6px;flex-wrap:wrap}
+.ticker-search-bar label{font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);white-space:nowrap}
+.ticker-input-wrap{display:flex;gap:8px;flex:1;min-width:240px}
+#tickerInput{background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--green);font-family:var(--fm);font-size:16px;font-weight:500;padding:8px 14px;outline:none;transition:border-color .2s,box-shadow .2s;width:140px;text-transform:uppercase;letter-spacing:.08em}
+#tickerInput:focus{border-color:var(--green);box-shadow:0 0 0 2px var(--green-dim)}
+#companyInput{background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--text-bright);font-family:var(--fm);font-size:13px;padding:8px 14px;outline:none;flex:1;transition:border-color .2s}
+#companyInput:focus{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-dim)}
+#currencyInput{background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--amber);font-family:var(--fm);font-size:13px;padding:8px 10px;outline:none;width:80px}
+.btn-load{background:var(--green);color:#0b1a0e;border:none;border-radius:3px;font-family:var(--fh);font-size:12px;font-weight:800;letter-spacing:.1em;padding:9px 20px;cursor:pointer;transition:background .15s,box-shadow .2s;white-space:nowrap}
+.btn-load:hover{background:var(--green2);box-shadow:0 2px 16px var(--green-glow)}
+.loading-bar{display:none;font-size:11px;color:var(--green);padding:4px 8px;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* LEGEND */
+.legend{display:flex;gap:18px;flex-wrap:wrap;padding:10px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;margin-bottom:24px;font-size:11px}
+.li{display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:1px}
+
+/* SECTION */
+.sec-label{font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--green);margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* PANELS */
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:18px 20px;margin-bottom:18px;transition:border-color .2s}
+.panel:hover{border-color:rgba(45,255,122,.25)}
+.panel-title{font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:18px}
+@media(max-width:700px){.grid2,.grid3{grid-template-columns:1fr}}
+
+/* FIELD ROWS */
+.fr{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border2)}
+.fr:last-child{border-bottom:none}
+.fl{color:var(--text-dim);font-size:12px;flex:1;padding-right:8px}
+.fv{font-weight:500;color:var(--text-bright);text-align:right}
+.fb{font-size:10px;color:var(--text-dim);margin-top:1px;text-align:right}
+
+/* INPUTS */
+input[type=number]{background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--blue);font-family:var(--fm);font-size:13px;font-weight:500;padding:6px 10px;width:100%;outline:none;transition:border-color .2s,box-shadow .2s}
+input[type=number]:focus{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-dim)}
+.ainput{background:var(--bg);border:1px solid #3a5a20;border-radius:3px;color:var(--amber);font-family:var(--fm);font-size:13px;font-weight:500;padding:6px 10px;width:100%;outline:none;transition:border-color .2s}
+.ainput:focus{border-color:var(--amber);box-shadow:0 0 0 2px var(--amber-dim)}
+.il{font-size:11px;color:var(--text-dim);margin-bottom:4px}
+.iw{display:flex;flex-direction:column;gap:2px;padding:7px 0;border-bottom:1px solid var(--border2)}
+.iw:last-child{border-bottom:none}
+.iw-row{display:flex;align-items:center;gap:10px}
+.iw-row .il{flex:1;margin-bottom:0}
+.iw-row input,.iw-row .ainput{width:120px;flex-shrink:0}
+
+/* HISTORICAL TABLE */
+table{width:100%;border-collapse:collapse;margin-top:8px}
+th{font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);padding:6px 10px;text-align:right;border-bottom:1px solid var(--border)}
+th:first-child{text-align:left}
+td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--border2);font-size:12px;color:var(--text)}
+td:first-child{text-align:left;color:var(--text-dim)}
+tr:last-child td{border-bottom:none}
+.td-highlight{color:var(--text-bright);font-weight:500}
+
+/* FCF PROJECTION TABLE */
+.proj-table{overflow-x:auto;margin-top:8px}
+.proj-table table{min-width:700px}
+th.yr{color:var(--green);font-size:11px}
+tr.tr-revenue td:nth-child(n+2){color:var(--text-bright);font-weight:500}
+tr.tr-fcf td:nth-child(n+2){color:var(--green);font-weight:600}
+tr.tr-pv td:nth-child(n+2){color:var(--blue)}
+tr.sub td{color:var(--text-dim);font-size:11px}
+tr.tr-ebit td:nth-child(n+2){color:var(--amber)}
+
+/* VALUATION OUTPUT */
+.val-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:18px}
+.val-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:16px;text-align:center}
+.val-card-label{font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px}
+.val-card-value{font-family:var(--fd);font-size:28px;color:var(--text-bright);line-height:1}
+.val-card-value.green{color:var(--green)}
+.val-card-value.amber{color:var(--amber)}
+.val-card-value.red{color:var(--red)}
+.val-card-sub{font-size:11px;color:var(--text-dim);margin-top:4px}
+
+/* MOS TABLE */
+.mos-table table td:nth-child(3){font-weight:600}
+.mos-buy{color:var(--green)}
+.mos-warn{color:var(--red)}
+.upside-badge{display:inline-block;padding:3px 10px;border-radius:2px;font-weight:600;font-size:14px;margin-top:6px}
+.upside-pos{background:var(--green-dim);color:var(--green);border:1px solid rgba(45,255,122,.3)}
+.upside-neg{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,92,92,.3)}
+
+/* BALANCE SHEET */
+.bs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.bs-row{display:flex;align-items:flex-start;gap:10px;padding:10px;background:var(--bg2);border:1px solid var(--border);border-radius:4px}
+.bs-rating{font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.1em;padding:2px 7px;border-radius:2px;white-space:nowrap;align-self:flex-start;margin-top:2px}
+.r-strong{background:var(--green-dim);color:var(--green);border:1px solid rgba(45,255,122,.3)}
+.r-good{background:rgba(45,200,100,.1);color:#4ecb71;border:1px solid rgba(45,200,100,.3)}
+.r-watch{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(255,184,48,.3)}
+.r-low{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(91,224,255,.3)}
+.r-neutral{background:rgba(150,150,150,.1);color:#aaa;border:1px solid rgba(150,150,150,.2)}
+.bs-content{flex:1}
+.bs-metric{font-size:11px;color:var(--text-dim);margin-bottom:2px}
+.bs-value{font-size:14px;font-weight:500;color:var(--text-bright);margin-bottom:3px}
+.bs-note{font-size:11px;color:var(--text-dim);line-height:1.4}
+
+/* RISK TABLE */
+.risk-table table th:first-child{text-align:left}
+.risk-high{color:var(--red);font-weight:700}
+.risk-med{color:var(--amber);font-weight:600}
+.risk-low{color:var(--blue)}
+
+/* CALC BUTTON */
+.btn-calc{background:var(--green);color:#0b1a0e;border:none;border-radius:4px;font-family:var(--fh);font-size:14px;font-weight:800;letter-spacing:.08em;padding:14px 40px;cursor:pointer;transition:background .15s,transform .1s,box-shadow .2s;display:block;width:100%;margin-top:8px;box-shadow:0 4px 20px var(--green-glow)}
+.btn-calc:hover{background:var(--green2);box-shadow:0 4px 30px rgba(45,255,122,.4);transform:translateY(-1px)}
+.btn-calc:active{transform:translateY(0)}
+
+/* SAVE BUTTON */
+.btn-save{background:transparent;color:var(--blue);border:1px solid var(--blue);border-radius:4px;font-family:var(--fh);font-size:12px;font-weight:700;letter-spacing:.08em;padding:10px 24px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-save:hover{background:var(--blue-dim);box-shadow:0 2px 12px rgba(91,224,255,.2)}
+.save-status{font-size:11px;padding:7px 14px;border-radius:4px;margin-top:8px;display:none}
+.save-ok{background:var(--green-dim);border:1px solid rgba(45,255,122,.3);color:var(--green)}
+.save-err{background:var(--red-dim);border:1px solid rgba(255,92,92,.3);color:var(--red)}
+.save-loading{background:var(--blue-dim);border:1px solid rgba(91,224,255,.3);color:var(--blue);animation:pulse 1s infinite}
+.api-config{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:16px 20px;margin-bottom:20px;display:none}
+.api-config.open{display:block}
+/* RESULT TABS */
+.results-area{margin-top:28px}
+.tab-nav{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:0;flex-wrap:wrap}
+.tab-btn{font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:11px 22px;cursor:pointer;border:none;background:transparent;color:var(--text-dim);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;white-space:nowrap}
+.tab-btn:hover{color:var(--text);background:var(--panel)}
+.tab-btn.tab-active{color:var(--green);border-bottom-color:var(--green);background:var(--panel)}
+.tab-btn.tab-active.amber{color:var(--amber);border-bottom-color:var(--amber)}
+.tab-pane{display:none;padding-top:20px}
+.tab-pane.active{display:block}
+/* Summary card in main tab */
+.summary-hero{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:600px){.summary-hero{grid-template-columns:1fr}}
+.hero-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:20px 24px;text-align:center}
+.hero-card.highlight{border-color:rgba(45,255,122,.4);box-shadow:0 0 24px rgba(45,255,122,.07)}
+.hero-card.highlight-amber{border-color:rgba(255,184,48,.4);box-shadow:0 0 24px rgba(255,184,48,.07)}
+.hero-label{font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px}
+.hero-value{font-family:var(--fd);font-size:42px;line-height:1;margin-bottom:6px}
+.hero-sub{font-size:11px;color:var(--text-dim)}
+.hero-badge{display:inline-block;padding:4px 14px;border-radius:3px;font-family:var(--fh);font-size:12px;font-weight:700;margin-top:8px}
+.compare-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:600px){.compare-grid{grid-template-columns:1fr 1fr}}
+.compare-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:14px;text-align:center}
+.compare-card-label{font-size:10px;font-family:var(--fh);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px}
+.compare-card-value{font-size:20px;font-weight:600;color:var(--text-bright)}
+.compare-card-sub{font-size:10px;color:var(--text-dim);margin-top:3px}
+/* MODE TOGGLE */
+.mode-bar{display:flex;gap:0;margin-bottom:0;border:1px solid var(--border);border-radius:5px;overflow:hidden;width:fit-content}
+.mode-btn{font-family:var(--fh);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:10px 28px;cursor:pointer;border:none;background:var(--panel);color:var(--text-dim);transition:all .2s}
+.mode-btn.active-dcf{background:var(--green);color:#0b1a0e}
+.mode-btn.active-growth{background:var(--amber);color:#0b1a0e}
+.mode-btn:hover:not(.active-dcf):not(.active-growth){background:var(--panel2);color:var(--text)}
+.growth-only{display:none}
+.dcf-only{display:block}
+.mode-info{font-size:11px;color:var(--text-dim);padding:8px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:0 0 4px 4px;border-top:none;margin-bottom:20px;line-height:1.6}
+/* Growth model extra inputs */
+.growth-inputs{background:var(--panel);border:1px solid #3a5a20;border-radius:6px;padding:18px 20px;margin-bottom:18px;display:none}
+.growth-inputs .panel-title{font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--amber);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+
+/* WATERMARK / FOOTER */
+footer{margin-top:48px;padding:24px 0;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:11px;color:var(--text-dim)}
+.footer-note{max-width:600px;line-height:1.5}
+.generated-stamp{text-align:right;font-size:10px;color:var(--text-dim)}
+.generated-stamp strong{color:var(--text);display:block;margin-bottom:2px}
+.divider{height:1px;background:var(--border);margin:24px 0}
+.info-box{background:var(--green-dim);border:1px solid rgba(45,255,122,.2);border-radius:4px;padding:10px 14px;font-size:11px;color:var(--text-dim);line-height:1.6;margin-bottom:18px}
+.info-box strong{color:var(--green)}
+
+/* AI AUTOFILL STATUS */
+.ai-status{font-size:11px;padding:8px 14px;border-radius:4px;margin-top:8px;display:none}
+.ai-ok{background:var(--green-dim);border:1px solid rgba(45,255,122,.3);color:var(--green)}
+.ai-err{background:var(--red-dim);border:1px solid rgba(255,92,92,.3);color:var(--red)}
+.ai-loading{background:var(--blue-dim);border:1px solid rgba(91,224,255,.3);color:var(--blue);animation:pulse 1s infinite}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HEADER -->
+<header>
+  <div class="eyebrow">DCF Valuation Engine</div>
+  <h1><span class="ticker-display" id="headerTicker">—</span> &nbsp;<span id="headerCompany" style="color:var(--text-bright);font-size:0.7em;font-style:italic"></span></h1>
+  <div class="header-meta">
+    <span class="tag" id="headerExchange">NSE / BSE</span>
+    <span class="tag" id="headerCurrTag">INR Crore</span>
+    <span style="color:var(--text-dim)">Discounted Cash Flow Valuation</span>
+    <span class="generated-at" id="generatedAt"></span>
+  </div>
+</header>
+
+<!-- TICKER SEARCH BAR -->
+<div class="ticker-search-bar">
+  <label>Stock</label>
+  <div class="ticker-input-wrap">
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div style="font-size:10px;color:var(--text-dim)">Ticker Symbol</div>
+      <input type="text" id="tickerInput" placeholder="e.g. SAATVIKGL" maxlength="20" />
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px;flex:1">
+      <div style="font-size:10px;color:var(--text-dim)">Company Name</div>
+      <input type="text" id="companyInput" placeholder="e.g. Saatvik Green Energy" style="background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--text-bright);font-family:var(--fm);font-size:13px;padding:6px 12px;outline:none;width:100%" />
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div style="font-size:10px;color:var(--text-dim)">Currency Unit</div>
+      <input type="text" id="currencyInput" placeholder="₹Cr / $mm" style="background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--amber);font-family:var(--fm);font-size:13px;padding:6px 10px;outline:none;width:100px" />
+    </div>
+  </div>
+  <button class="btn-load" onclick="autofillWithAI()">⚡ AI Autofill</button>
+  <button class="btn-load" style="background:var(--panel2);color:var(--text-bright);border:1px solid var(--border)" onclick="applyHeader()">Apply →</button>
+</div>
+<div id="aiStatus" class="ai-status"></div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="li"><div class="dot" style="background:var(--blue)"></div><span style="color:var(--text-dim)">Blue = Hardcoded inputs</span></div>
+  <div class="li"><div class="dot" style="background:var(--amber)"></div><span style="color:var(--text-dim)">Amber = Key assumptions</span></div>
+  <div class="li"><div class="dot" style="background:var(--green)"></div><span style="color:var(--text-dim)">Green = Computed formulas</span></div>
+  <div class="li"><div class="dot" style="background:var(--text-dim)"></div><span style="color:var(--text-dim)">Formula cells auto-calculate</span></div>
+</div>
+
+<!-- MARKET DATA + ASSUMPTIONS -->
+<div class="sec-label">Market Data &amp; Projection Assumptions</div>
+<div class="grid2">
+  <!-- Market Data -->
+  <div class="panel">
+    <div class="panel-title">Market Data (Blue = inputs)</div>
+    <div class="iw">
+      <div class="iw-row"><span class="il">Stock Price</span><input type="number" id="stockPrice" value="302" min="0" step="0.01" oninput="calculate()"></div>
+    </div>
+    <div class="iw">
+      <div class="iw-row"><span class="il">Shares Outstanding (mm)</span><input type="number" id="sharesOut" value="127" min="0" step="0.1" oninput="calculate()"></div>
+    </div>
+    <div class="iw">
+      <div class="iw-row"><span class="il">Net Debt (neg = net cash)</span><input type="number" id="netDebt" value="-150" step="0.1" oninput="calculate()"></div>
+    </div>
+    <div class="iw">
+      <div class="iw-row"><span class="il">WACC</span><input type="number" id="wacc" value="0.14" min="0.01" max="0.5" step="0.001" oninput="calculate()"></div>
+    </div>
+    <div class="iw">
+      <div class="iw-row"><span class="il">Base Revenue (FY2025)</span><input type="number" id="baseRev" value="2158.39" min="0" step="0.01" oninput="calculate()"></div>
+    </div>
+    <div class="iw">
+      <div class="iw-row"><span class="il">Base Fiscal Year</span><input type="number" id="baseYear" value="2025" min="2000" max="2040" step="1" oninput="calculate()"></div>
+    </div>
+  </div>
+
+  <!-- Projection Assumptions -->
+  <div class="panel">
+    <div class="panel-title">Projection Assumptions (Amber = key inputs)</div>
+    <div class="iw">
+      <div class="iw-row"><span class="il">Yr 1–2 Revenue Growth</span><input class="ainput" type="number" id="gr12" value="0.60" min="-1" max="10" step="0.01" oninput="calculate()"></div>
+      <div class="fb" style="color:var(--text-dim)">Massive capacity expansion; large order book</div>
+    </div>
+    <div class="iw">
+      <div class="iw-row"><span class="il">Yr 3–5 Revenue Growth</span><input class="ainput" type="number" id="gr35" value="0.30" min="-1" max="10" step="0.01" oninput="calculate()"></div>
+      <div class="fb" style="color:var(--text-dim)">Moderating as base grows; PLI tailwinds sustain growth</div>
+    </div>
+    <div class="iw">
+      <div class="iw-row"><span class="il">Terminal Growth Rate</span><input class="ainput" type="number" id="tgr" value="0.07" min="0" max="0.15" step="0.001" oninput="calculate()"></div>
+      <div class="fb" style="color:var(--text-dim)">Must be &lt; WACC; nominal GDP + sector premium</div>
+    </div>
+    <div class="iw">
+      <div class="iw-row"><span class="il">EBITDA Margin Yr 1</span><input class="ainput" type="number" id="em1" value="0.165" min="0" max="1" step="0.001" oninput="calculate()"></div>
+    </div>
+    <div class="iw">
+      <div class="iw-row"><span class="il">EBITDA Margin Yr 5</span><input class="ainput" type="number" id="em5" value="0.22" min="0" max="1" step="0.001" oninput="calculate()"></div>
+    </div>
+    <div class="iw">
+      <div class="iw-row"><span class="il">D&amp;A % of Revenue</span><input class="ainput" type="number" id="dna" value="0.025" min="0" max="1" step="0.001" oninput="calculate()"></div>
+    </div>
+    <div class="iw">
+      <div class="iw-row"><span class="il">CapEx % of Revenue</span><input class="ainput" type="number" id="capex" value="0.08" min="0" max="1" step="0.001" oninput="calculate()"></div>
+    </div>
+    <div class="iw">
+      <div class="iw-row"><span class="il">NWC % of Revenue</span><input class="ainput" type="number" id="nwc" value="0.04" min="-1" max="1" step="0.001" oninput="calculate()"></div>
+    </div>
+    <div class="iw">
+      <div class="iw-row"><span class="il">Tax Rate</span><input class="ainput" type="number" id="taxRate" value="0.25" min="0" max="1" step="0.001" oninput="calculate()"></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- VALUATION MODE SELECTOR -->
+<div style="margin-top:8px;margin-bottom:20px">
+  <div style="font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px">Valuation Mode</div>
+  <div class="mode-bar">
+    <button class="mode-btn active-dcf" id="btnDCF" onclick="setMode('dcf')">📊 &nbsp;DCF Model</button>
+    <button class="mode-btn" id="btnGrowth" onclick="setMode('growth')">📈 &nbsp;Growth Model</button>
+  </div>
+  <div class="mode-info" id="modeInfo">
+    <strong style="color:var(--green)">DCF Mode:</strong> Projects Free Cash Flow over 5 years, discounts at WACC, adds terminal value. Best for cash-generative businesses.
+  </div>
+</div>
+
+<!-- GROWTH MODEL EXTRA INPUTS -->
+<div class="growth-inputs" id="growthInputs">
+  <div class="panel-title">Growth Model Inputs</div>
+  <div class="grid3">
+    <div class="iw"><div class="il">Base EPS / Share</div><input class="ainput" type="number" id="baseEPS" value="4.50" step="0.01" oninput="calculate()"><div class="fb">Current year EPS (or TTM)</div></div>
+    <div class="iw"><div class="il">EPS Growth Yr 1–5</div><input class="ainput" type="number" id="epsGr15" value="0.20" step="0.001" oninput="calculate()"><div class="fb">High-growth phase CAGR</div></div>
+    <div class="iw"><div class="il">EPS Growth Yr 6–10</div><input class="ainput" type="number" id="epsGr610" value="0.12" step="0.001" oninput="calculate()"><div class="fb">Mature phase EPS growth</div></div>
+    <div class="iw"><div class="il">Terminal P/E Multiple</div><input class="ainput" type="number" id="termPE" value="20" step="0.5" oninput="calculate()"><div class="fb">Exit P/E at yr 10</div></div>
+    <div class="iw"><div class="il">Required Return</div><input class="ainput" type="number" id="reqReturn" value="0.12" step="0.001" oninput="calculate()"><div class="fb">Min acceptable annual return</div></div>
+    <div class="iw"><div class="il">Dividend / Share</div><input class="ainput" type="number" id="divPerSh" value="0" step="0.01" oninput="calculate()"><div class="fb">0 if no dividend</div></div>
+  </div>
+</div>
+
+<button class="btn-calc" id="calcBtn" onclick="calculate()">▶ &nbsp;Recalculate DCF</button>
+
+<!-- ═══════════════════════════════════════════════
+     RESULTS TABS
+     ═══════════════════════════════════════════ -->
+<div class="results-area">
+  <div class="tab-nav">
+    <button class="tab-btn tab-active" id="tab-summary"   onclick="switchTab('summary')">★ &nbsp;Summary</button>
+    <button class="tab-btn"            id="tab-dcf"       onclick="switchTab('dcf')">📊 &nbsp;DCF Projection</button>
+    <button class="tab-btn"            id="tab-growth"    onclick="switchTab('growth')">📈 &nbsp;Growth Projection</button>
+    <button class="tab-btn"            id="tab-balance"   onclick="switchTab('balance')">🏦 &nbsp;Balance Sheet</button>
+    <button class="tab-btn"            id="tab-risks"     onclick="switchTab('risks')">⚠️ &nbsp;Risks</button>
+    <button class="tab-btn"            id="tab-rationale" onclick="switchTab('rationale')">💡 &nbsp;Rationale</button>
+  </div>
+
+  <!-- TAB: SUMMARY -->
+  <div class="tab-pane active" id="pane-summary">
+    <!-- Hero fair value cards -->
+    <div class="summary-hero" id="summaryHero"></div>
+    <!-- Compare metrics row -->
+    <div class="compare-grid" id="compareGrid"></div>
+    <!-- MOS table -->
+    <div class="panel">
+      <div class="panel-title" id="mosTitle">Margin of Safety — Buy-Price Analysis</div>
+      <div class="info-box" id="mosInfo">MOS = the discount you demand below intrinsic value before buying, to protect against forecast errors and macro risk. Typically 20–30% for growth stocks.</div>
+      <div class="mos-table"><table id="mosTable"></table></div>
+    </div>
+  </div>
+
+  <!-- TAB: DCF PROJECTION -->
+  <div class="tab-pane" id="pane-dcf">
+    <div class="sec-label">Free Cash Flow Projection</div>
+    <div class="panel">
+      <div class="panel-title">5-Year UFCF Model — Unlevered Free Cash Flow</div>
+      <div class="proj-table"><table id="projTable"></table></div>
+    </div>
+    <div class="panel" style="margin-top:0">
+      <div class="panel-title">DCF Valuation Bridge</div>
+      <div class="val-grid" id="valGridDCF"></div>
+    </div>
+  </div>
+
+  <!-- TAB: GROWTH PROJECTION -->
+  <div class="tab-pane" id="pane-growth">
+    <div class="sec-label">EPS Growth Projection</div>
+    <div class="panel">
+      <div class="panel-title">10-Year EPS Model — Two-Phase Growth</div>
+      <div class="proj-table"><table id="growthTable"></table></div>
+    </div>
+    <div class="panel" style="margin-top:0">
+      <div class="panel-title">Growth Model Valuation Bridge</div>
+      <div class="val-grid" id="valGridGrowth"></div>
+    </div>
+  </div>
+
+  <!-- TAB: BALANCE SHEET -->
+  <div class="tab-pane" id="pane-balance">
+    <div class="sec-label">Balance Sheet Health &amp; Financial Stability</div>
+    <div class="panel">
+      <div class="panel-title">Key Financial Metrics</div>
+      <div id="bsSection"></div>
+    </div>
+    <div class="panel" id="stressPanel">
+      <div class="panel-title">Stress Test — Downside Scenarios</div>
+      <div id="stressContent" style="font-size:12px;line-height:2;color:var(--text-dim)">
+        <div>✅ &nbsp;<strong style="color:var(--text-bright)">China module price crash:</strong> BCD (40%) + ALMM listing protects domestic market.</div>
+        <div>⚠️ &nbsp;<strong style="color:var(--text-bright)">Odisha facility execution risk:</strong> ₹2,000Cr Phase-1 — construction delays could strain cash flows.</div>
+        <div>✅ &nbsp;<strong style="color:var(--text-bright)">India solar demand resilience:</strong> 50 GW/yr tenders provide structural demand support.</div>
+        <div>⚠️ &nbsp;<strong style="color:var(--text-bright)">Customer concentration:</strong> Top 5 = 44.4% of FY25 revenue. Loss of major client is a risk.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: RISKS -->
+  <div class="tab-pane" id="pane-risks">
+    <div class="sec-label">Key Risk Factors</div>
+    <div class="panel risk-table">
+      <div class="panel-title">Risk Register</div>
+      <table id="riskTable"></table>
+    </div>
+  </div>
+
+  <!-- TAB: RATIONALE -->
+  <div class="tab-pane" id="pane-rationale">
+    <div class="sec-label">Investment Rationale &amp; Assumption Basis</div>
+    <div class="panel" id="whyPanel">
+      <div class="panel-title">Why These Growth Rates?</div>
+      <div id="whyContent" style="color:var(--text-dim);font-size:12px;line-height:2">
+        <div>▸ &nbsp;Revenue CAGR ~88% (FY23–FY25); Yr1-2 assumption of 60% is conservative vs history.</div>
+        <div>▸ &nbsp;Capacity expanding from 3.8 GW (FY25) to 7.8 GW+ by FY27.</div>
+        <div>▸ &nbsp;India PLI scheme + BCD create a structural demand moat for domestic manufacturers.</div>
+        <div>▸ &nbsp;Yr 3–5 growth tapers to 30% reflecting larger base and execution risk.</div>
+        <div>▸ &nbsp;Terminal growth 7%: India solar CAGR ~26%; terminal rate reflects long-run GDP.</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Historical Basis</div>
+      <div id="histTable"></div>
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+        <button onclick="addHistRow()" style="background:var(--panel2);border:1px solid var(--border);color:var(--text);font-family:var(--fm);font-size:12px;padding:6px 14px;border-radius:3px;cursor:pointer">+ Add Year</button>
+        <button onclick="removeHistRow()" style="background:var(--panel2);border:1px solid var(--border);color:var(--text-dim);font-family:var(--fm);font-size:12px;padding:6px 14px;border-radius:3px;cursor:pointer">− Remove Last</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /results-area -->
+
+<!-- SAVE TO DATABASE -->
+<div style="margin-top:40px;padding-top:28px;border-top:1px solid var(--border)">
+  <div class="sec-label">Save to Database</div>
+
+  <!-- API config (collapsed by default) -->
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+    <button class="btn-save" onclick="toggleApiConfig()">⚙️ &nbsp;API Settings</button>
+    <button class="btn-save" style="color:var(--green);border-color:var(--green)" onclick="saveToDatabase()">💾 &nbsp;Save Valuation</button>
+    <span style="font-size:11px;color:var(--text-dim)">Saves inputs, calculations, and all comments to your database</span>
+  </div>
+  <div class="api-config" id="apiConfig">
+    <div class="panel-title">API Connection</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+      <div style="flex:1;min-width:220px">
+        <div class="il" style="margin-bottom:4px">API Base URL</div>
+        <input type="text" id="apiUrl" value="http://localhost:8000" style="background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--text-bright);font-family:var(--fm);font-size:13px;padding:7px 12px;width:100%;outline:none"/>
+      </div>
+      <div style="min-width:180px">
+        <div class="il" style="margin-bottom:4px">Created By (optional)</div>
+        <input type="text" id="apiUser" placeholder="analyst name / user id" style="background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--text-bright);font-family:var(--fm);font-size:13px;padding:7px 12px;width:100%;outline:none"/>
+      </div>
+      <div style="min-width:120px">
+        <div class="il" style="margin-bottom:4px">Save Comments?</div>
+        <select id="saveComments" style="background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--text-bright);font-family:var(--fm);font-size:13px;padding:7px 10px;width:100%;outline:none">
+          <option value="yes">Yes — include all</option>
+          <option value="no">No — skip</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div id="saveStatus" class="save-status"></div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-note">
+    <strong style="color:var(--text-bright);display:block;margin-bottom:4px">Disclaimer</strong>
+    This DCF model is for informational and educational purposes only. It does not constitute investment advice. All projections are estimates based on user-supplied assumptions. Past performance is not indicative of future results. Consult a qualified financial advisor before making investment decisions.
+  </div>
+  <div class="generated-stamp">
+    <strong id="footerTicker">DCF Valuation Engine</strong>
+    <span id="footerDate"></span>
+    <span style="display:block;margin-top:4px;font-size:9px">Generated on: <span id="footerGen"></span></span>
+  </div>
+</footer>
+
+</div><!-- /wrap -->
+
+<script>
+// ── DEFAULTS (Saatvik) ──
+const DEFAULT = {
+  ticker:'SAATVIKGL', company:'Saatvik Green Energy', currency:'₹Cr', exchange:'NSE / BSE',
+  hist:[
+    {yr:'FY2021',rev:125,margin:0.02},
+    {yr:'FY2022',rev:285,margin:0.04},
+    {yr:'FY2023',rev:608.59,margin:0.008},
+    {yr:'FY2024',rev:1087.96,margin:0.092},
+    {yr:'FY2025',rev:2158.39,margin:0.164},
+  ],
+  bs:[
+    {metric:'Total Cash & Proceeds',value:'₹900Cr (est. post-IPO)',rating:'GOOD',note:'Fresh issue of ₹700Cr earmarked for Odisha facility (₹477Cr) + debt repayment (₹177Cr). Adequate near-term liquidity.'},
+    {metric:'Total Debt',value:'₹545Cr (Jun-25)',rating:'LOW',note:'₹545Cr total debt — modest for a ₹2,158Cr revenue company. Post-IPO repayments further strengthen balance sheet.'},
+    {metric:'Net Debt / (Net Cash)',value:'−₹150Cr (est.)',rating:'GOOD',note:'Post-IPO net cash of ~₹150Cr. Lean but positive — self-funded via operations and IPO proceeds.'},
+    {metric:'Debt / Equity Ratio',value:'~0.30x',rating:'LOW',note:'Conservative capital structure. Post-IPO equity infusion of ₹700Cr significantly improves ratio.'},
+    {metric:'Interest Coverage',value:'~8–10x (est.)',rating:'GOOD',note:'Strong coverage given low absolute debt. EBIT ~₹290Cr (FY25 est.); interest expense ~₹30–40Cr.'},
+    {metric:'Debtor Days',value:'67.6 days',rating:'WATCH',note:'Increased from 46.5 → 67.6 days. Large utility-scale clients (IPPs, DISCOMs) have slow payment cycles. Monitor closely.'},
+    {metric:'Promoter Holding',value:'76.0% (post-IPO)',rating:'STRONG',note:'76% promoter holding signals high conviction. Strong alignment of management and shareholders.'},
+    {metric:'Order Book Coverage',value:'~4.05 GW (Jun-25)',rating:'STRONG',note:'4.05 GW order book → ~1.5–2 yrs revenue visibility. Clients include JSW Neo Energy, Shree Cement, SJVN.'},
+  ],
+  risks:[
+    {severity:'HIGH',risk:'BCD removal / trade policy reversal',detail:"India's 40% Basic Customs Duty on solar modules is the key moat. Any US-India trade deal or WTO pressure forcing BCD reduction would devastate pricing advantage. Chinese modules are 40–50% cheaper pre-duty."},
+    {severity:'HIGH',risk:'Odisha 4GW facility execution risk',detail:'₹2,000Cr Phase-1 greenfield factory. Construction delays, permitting issues, equipment delivery, and yield ramp failures could significantly delay FCF generation and increase capex burn.'},
+    {severity:'HIGH',risk:'Module pricing pressure (global oversupply)',detail:'Chinese overcapacity driving global module prices to record lows (−43% YoY in FY24). If Indian module prices follow, margins could compress sharply despite BCD protection.'},
+    {severity:'MED',risk:'Technology obsolescence',detail:'Solar tech transitions rapidly (Poly → Mono PERC → TOPCon → Perovskite). Saatvik transitioning to N-TOPCon but has no cell/wafer manufacturing yet. Backward integration is critical but risky.'},
+    {severity:'MED',risk:'Working capital & debtor risk',detail:'Debtor days rising (46→67 days). Large DISCOMs and state utilities are notoriously slow payers. If receivables balloon, Saatvik may need working capital credit lines.'},
+    {severity:'MED',risk:'Competition from larger Indian peers',detail:'Waaree Energies, Adani Solar, Premier Energies — all better-capitalised and expanding aggressively. Market share gains may be harder at larger revenue scales.'},
+    {severity:'LOW',risk:'Dilution risk',detail:'IPO was modest (15% dilution). However, large capex plans may necessitate future equity raises. Watch for QIP or rights issue announcements.'},
+  ],
+  why:[
+    'Revenue CAGR ~88% (FY23–FY25); Yr1-2 assumption of 60% is conservative vs history but reflects a larger base.',
+    'Capacity expanding from 3.8 GW (FY25) to 7.8 GW+ by FY27 (Odisha 4GW + 4.8GW cell line). Order book: 4.05 GW as of Jun-25.',
+    "India's PLI scheme (₹24,000Cr) + BCD on Chinese modules create a structural demand moat for domestic manufacturers.",
+    'Yr 3–5 growth tapers to 30% reflecting larger revenue base, potential module price pressure, and execution risk on Odisha facility ramp.',
+    'Terminal growth 7%: India solar CAGR ~26% historically; terminal rate reflects long-run GDP (~7%) + sector penetration; only 15% of 750GW harnessed.',
+  ],
+  stress:[
+    {icon:'✅',title:'China module price crash:',body:'BCD (40%) + ALMM listing protects domestic market. However, if BCD is removed under trade pressure, Saatvik faces existential pricing threat from Chinese peers.'},
+    {icon:'⚠️',title:'Odisha facility execution risk:',body:'₹2,000Cr Phase-1 investment — construction delays, yield ramp failures could strain cash flows in FY26–FY28. IPO proceeds provide buffer but are finite.'},
+    {icon:'✅',title:'India solar demand resilience:',body:'50 GW/yr renewable energy tenders (2024–2028), PM Surya Ghar (10M households), and KUSUM scheme provide structural demand support.'},
+    {icon:'⚠️',title:'Customer concentration:',body:'Top 5 customers = 44.4% of FY25 revenue; top customer = 16.9%. Loss of a major IPP customer could materially impact near-term revenues.'},
+  ]
+};
+
+// ── STATE ──
+let histData = JSON.parse(JSON.stringify(DEFAULT.hist));
+let bsData   = JSON.parse(JSON.stringify(DEFAULT.bs));
+let riskData = JSON.parse(JSON.stringify(DEFAULT.risks));
+let currentTicker  = DEFAULT.ticker;
+let currentCompany = DEFAULT.company;
+let currentCurrency = DEFAULT.currency;
+
+// ── INIT ──
+window.onload = () => {
+  setGeneratedTimestamp();
+  document.getElementById('tickerInput').value  = DEFAULT.ticker;
+  document.getElementById('companyInput').value = DEFAULT.company;
+  document.getElementById('currencyInput').value = DEFAULT.currency;
+  applyHeader();
+  renderHistTable();
+  renderBsSection();
+  renderRiskTable();
+  calculate();
+};
+
+function setGeneratedTimestamp(){
+  const now = new Date();
+  const opts = {year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'short'};
+  const str = now.toLocaleString('en-US', opts);
+  document.getElementById('generatedAt').textContent = 'Generated: ' + str;
+  document.getElementById('footerGen').textContent   = str;
+}
+
+function applyHeader(){
+  currentTicker  = (document.getElementById('tickerInput').value.trim().toUpperCase()) || currentTicker;
+  currentCompany = document.getElementById('companyInput').value.trim() || currentTicker;
+  currentCurrency= document.getElementById('currencyInput').value.trim() || DEFAULT.currency;
+  document.getElementById('headerTicker').textContent  = currentTicker;
+  document.getElementById('headerCompany').textContent = currentCompany;
+  document.getElementById('headerCurrTag').textContent = currentCurrency;
+  document.getElementById('footerTicker').textContent  = currentTicker + ' — DCF Valuation';
+  document.title = currentTicker + ' — DCF Valuation';
+  const now = new Date();
+  document.getElementById('footerDate').textContent = now.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  calculate();
+}
+
+// ── AI AUTOFILL ──
+async function autofillWithAI(){
+  const ticker  = (document.getElementById('tickerInput').value.trim().toUpperCase()) || 'TSLA';
+  // Clear company field immediately — do NOT use it as a prompt hint (causes stale data bleed)
+  document.getElementById('companyInput').value = '';
+  document.getElementById('headerCompany').textContent = '';
+  document.getElementById('headerTicker').textContent  = ticker;
+  document.getElementById('headerCurrTag').textContent = '—';
+  document.getElementById('footerTicker').textContent  = ticker + ' — DCF Valuation';
+  document.title = ticker + ' — DCF Valuation';
+  const label   = ticker;
+  const status  = document.getElementById('aiStatus');
+  function setStatus(cls,msg){ status.className='ai-status '+cls; status.style.display='block'; status.textContent=msg; }
+
+  // ── Wipe ALL stale data before doing anything ──
+  function resetAll(){
+    ['stockPrice','sharesOut','netDebt','wacc','baseRev','baseYear',
+     'gr12','gr35','tgr','em1','em5','dna','capex','nwc','taxRate',
+     'baseEPS','epsGr15','epsGr610','termPE','reqReturn','divPerSh'
+    ].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('companyInput').value   = '';
+    document.getElementById('currencyInput').value  = '';
+    document.getElementById('headerExchange').textContent = '—';
+    document.getElementById('headerTicker').textContent   = ticker;
+    document.getElementById('headerCompany').textContent  = '';
+    document.getElementById('headerCurrTag').textContent  = '—';
+    document.getElementById('footerTicker').textContent   = ticker + ' — DCF Valuation';
+    document.title = ticker + ' — DCF Valuation';
+    const _safe = (id, prop, val) => { const el = document.getElementById(id); if(el) el[prop] = val; };
+    _safe('whyContent',    'innerHTML', '<div style="color:var(--text-dim)">Fetching analysis…</div>');
+    _safe('stressContent', 'innerHTML', '<div style="color:var(--text-dim)">Fetching analysis…</div>');
+    _safe('summaryHero',   'innerHTML', '');
+    _safe('compareGrid',   'innerHTML', '');
+    _safe('mosTable',      'innerHTML', '');
+    _safe('projTable',     'innerHTML', '');
+    _safe('growthTable',   'innerHTML', '');
+    _safe('valGridDCF',    'innerHTML', '');
+    _safe('valGridGrowth', 'innerHTML', '');
+    _dcfIV = 0; _growthIV = 0;
+    histData = []; bsData = []; riskData = [];
+    renderHistTable(); renderBsSection(); renderRiskTable();
+  }
+
+  // ── Robust JSON extractor: handles fences, trailing commas, truncation ──
+  function extractJSON(raw){
+    raw = raw.replace(/```json|```/gi,'').trim();
+    const start = raw.indexOf('{');
+    if(start === -1) throw new Error('No JSON found in AI response');
+    let depth=0, end=-1;
+    for(let i=start;i<raw.length;i++){
+      if(raw[i]==='{') depth++;
+      else if(raw[i]==='}'){depth--; if(depth===0){end=i;break;}}
+    }
+    let s = end!==-1 ? raw.slice(start,end+1) : raw.slice(start);
+    s = s.replace(/,\s*([}\]])/g,'$1');            // trailing commas
+    // if truncated mid-string, trim back to last safe comma
+    if(!/[}\]"0-9truefalsn]$/.test(s.trimEnd())){
+      const cuts = [s.lastIndexOf('",'),s.lastIndexOf('],'),s.lastIndexOf('},'),s.lastIndexOf(']}')];
+      const cut = Math.max(...cuts);
+      if(cut > 0) s = s.slice(0, cut+1);
+    }
+    const opens   = (s.match(/\{/g)||[]).length - (s.match(/\}/g)||[]).length;
+    const arrOpen = (s.match(/\[/g)||[]).length  - (s.match(/\]/g)||[]).length;
+    for(let i=0;i<arrOpen;i++) s+=']';
+    for(let i=0;i<opens;i++)   s+='}';
+    return JSON.parse(s);
+  }
+
+  // ── API call helper ──
+  async function aiCall(promptStr, maxTok){
+    const apiBase = (document.getElementById('apiUrl').value || 'http://localhost:8000').replace(/\/$/,'');
+    const resp = await fetch(apiBase+'/api/ai/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-5', max_tokens:maxTok,
+        messages:[{role:'user', content: promptStr}]
+      })
+    });
+    if(!resp.ok){ const e=await resp.json().catch(()=>({})); throw new Error(e.detail||'HTTP '+resp.status); }
+    const data = await resp.json();
+    if(data.error) throw new Error(data.error.message);
+    const raw = data.content.map(c=>c.text||'').join('');
+    return extractJSON(raw);
+  }
+
+  // ── Apply parsed number object to DOM ──
+  function applyNumbers(o){
+    const fieldMap = {
+      px:'stockPrice', sh:'sharesOut', nd:'netDebt', wc:'wacc',
+      rv:'baseRev',    by:'baseYear',  g1:'gr12',    g2:'gr35',
+      tg:'tgr',        m1:'em1',       m5:'em5',     da:'dna',
+      cx:'capex',      nw:'nwc',       tx:'taxRate',
+      ep:'baseEPS',    eg1:'epsGr15',  eg2:'epsGr610',
+      pe:'termPE',     rr:'reqReturn', dv:'divPerSh'
+    };
+    Object.entries(fieldMap).forEach(([k,id])=>{
+      if(o[k] != null && o[k] !== '') document.getElementById(id).value = o[k];
+    });
+    const co  = (o.co  && o.co.trim())  ? o.co.trim()  : ticker;
+    const cur = (o.cur && o.cur.trim()) ? o.cur.trim() : 'USD mm';
+    const ex  = (o.ex  && o.ex.trim())  ? o.ex.trim()  : '—';
+    // Force-write ALL header elements — never rely on applyHeader() during autofill
+    document.getElementById('companyInput').value   = co;
+    document.getElementById('currencyInput').value  = cur;
+    document.getElementById('headerExchange').textContent = ex;
+    document.getElementById('headerCurrTag').textContent  = cur;
+    document.getElementById('headerTicker').textContent   = ticker;
+    document.getElementById('headerCompany').textContent  = co;
+    document.getElementById('footerTicker').textContent   = ticker + ' — DCF Valuation';
+    document.getElementById('tickerInput').value    = ticker;
+    document.title = ticker + ' — DCF Valuation';
+    currentTicker = ticker; currentCompany = co; currentCurrency = cur;
+    if(Array.isArray(o.h) && o.h.length){
+      histData = o.h.map(row=>Array.isArray(row)
+        ? {yr:String(row[0]), rev:Number(row[1])||0, margin:Number(row[2])||0}
+        : {yr:String(row.yr||''), rev:Number(row.rev)||0, margin:Number(row.margin)||0}
+      );
+    } else { histData = [{yr:'N/A',rev:0,margin:0}]; }
+    renderHistTable();
+    calculate();
+  }
+
+  resetAll();
+
+  try {
+    // ══ CALL 1: All financials + live price via Claude web_search ══
+    setStatus('ai-loading','[1/2] Fetching live price and financials for '+label+'...');
+
+    const p1 = 'You are a financial data assistant with web search. ' +
+      'Search the web right now for the current stock price of "' + ticker + '" and return live market data. ' +
+      'Return ONLY a JSON object, no explanation, no markdown, just raw JSON. ' +
+      'Schema: {"co":"Full Company Name","ex":"NASDAQ","cur":"USD mm","px":0,"sh":0,"nd":0,"wc":0.09,"rv":0,"by":2024,"g1":0.15,"g2":0.10,"tg":0.04,"m1":0.18,"m5":0.22,"da":0.04,"cx":0.06,"nw":0.02,"tx":0.21,"ep":0,"eg1":0.15,"eg2":0.10,"pe":20,"rr":0.10,"dv":0,"h":[["FY2020",0,0.10],["FY2021",0,0.12],["FY2022",0,0.14],["FY2023",0,0.15],["FY2024",0,0.16]]} ' +
+      'px=CURRENT live price (search now not training data), co=full name, ex=exchange, cur=currency+unit, ' +
+      'sh=shares outstanding millions, nd=net debt negative means net cash, wc=WACC decimal, ' +
+      'rv=latest fiscal year revenue, by=fiscal year integer, ' +
+      'g1=yr1-2 revenue growth decimal, g2=yr3-5 growth decimal, tg=terminal growth must be below wc, ' +
+      'm1=EBITDA margin yr1, m5=yr5, da=DA pct, cx=capex pct, nw=NWC pct, tx=tax rate decimal, ' +
+      'ep=current EPS TTM, eg1=EPS growth rate yrs1-5 decimal, eg2=EPS growth rate yrs6-10 decimal, ' +
+      'pe=terminal PE exit multiple realistic for this sector, rr=required return decimal 0.10-0.15, ' +
+      'dv=annual dividend per share 0 if none, h=5yr history array. All numeric fields must be plain numbers.';
+
+    const o1 = await (async()=>{
+      const apiBase = (document.getElementById('apiUrl').value || 'http://localhost:8000').replace(/\/$/,'');
+      const resp = await fetch(apiBase+'/api/ai/messages',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          model:'claude-sonnet-4-5', max_tokens:1500,
+          tools:[{"type":"web_search_20250305","name":"web_search"}],
+          messages:[{role:'user', content: p1}]
+        })
+      });
+      if(!resp.ok){ const e=await resp.json().catch(()=>({})); throw new Error(e.detail||'HTTP '+resp.status); }
+      const data = await resp.json();
+      if(data.error) throw new Error(data.error.message);
+      // web_search returns mixed blocks: tool_use, tool_result, text
+      const textBlocks = (data.content || []).filter(c => c.type === 'text').map(c => c.text || '');
+      if(!textBlocks.length) throw new Error('No text in AI response — web search may have failed');
+      const raw = textBlocks[textBlocks.length - 1];
+      return extractJSON(raw);
+    })();
+
+    applyNumbers(o1);
+    if(o1.px) setStatus('ai-loading','[1/2] Live price: '+Number(o1.px).toFixed(2)+' — generating analysis...');
+
+    // ══ Step C: Narrative call ══
+    setStatus('ai-loading','[2/2] Generating DCF analysis for '+label+'...');
+    const p2 = 'Financial analyst writing DCF commentary for "' + ticker + '". ' +
+      'Return ONLY a JSON object. No explanation, no markdown. Max 80 chars per string. No apostrophes in strings. ' +
+      'Schema: {"why":["str","str","str","str"],' +
+      '"risks":[{"s":"HIGH","r":"title","d":"sentence"},{"s":"HIGH","r":"title","d":"sentence"},' +
+               '{"s":"MED","r":"title","d":"sentence"},{"s":"MED","r":"title","d":"sentence"},' +
+               '{"s":"LOW","r":"title","d":"sentence"}],' +
+      '"stress":[{"ok":true,"t":"Bull:","b":"sentence"},{"ok":false,"t":"Bear:","b":"sentence"},' +
+               '{"ok":true,"t":"Outlook:","b":"sentence"},{"ok":false,"t":"Risk:","b":"sentence"}]} ' +
+      'why=4 growth drivers. s=HIGH/MED/LOW. ok=boolean.';
+
+    const o2 = await aiCall(p2, 1000);
+
+    if(Array.isArray(o2.why) && o2.why.length)
+      document.getElementById('whyContent').innerHTML =
+        o2.why.map(w=>'<div>\u25B8 &nbsp;'+w+'</div>').join('');
+
+    if(Array.isArray(o2.risks) && o2.risks.length){
+      riskData = o2.risks.map(x=>({severity:x.s||'MED', risk:x.r||'', detail:x.d||''}));
+      renderRiskTable();
+    }
+    if(Array.isArray(o2.stress) && o2.stress.length){
+      document.getElementById('stressContent').innerHTML = o2.stress.map(function(s){
+        var icon = s.ok===true ? '\u2705' : '\u26A0\uFE0F';
+        return '<div>'+icon+' &nbsp;<strong style="color:var(--text-bright)">'+
+          (s.t||'')+'</strong> '+(s.b||'')+'</div>';
+      }).join('');
+    }
+
+    calculate();
+    setStatus('ai-ok','\u2713 '+label+' loaded (live price via web search). Review inputs then click \u25B6 Recalculate DCF.');
+
+  } catch(e){
+    console.error('Autofill error:', e);
+    setStatus('ai-err','\u2717 Autofill failed: '+e.message+' — open browser console (F12) for details');
+  }
+}
+
+// ── HISTORICAL TABLE ──
+function renderHistTable(){
+  const rows = histData.map((r,i)=>{
+    const prev = i>0 ? histData[i-1].rev : null;
+    const g = prev!=null ? ((r.rev-prev)/prev) : null;
+    return `<tr>
+      <td><input type="text" value="${r.yr}" style="background:transparent;border:none;color:var(--text-dim);font-family:var(--fm);font-size:12px;width:70px" onchange="histData[${i}].yr=this.value;calculate()" /></td>
+      <td><input type="number" value="${r.rev}" style="background:transparent;border:none;color:var(--text-bright);font-family:var(--fm);font-size:12px;width:100px;text-align:right" onchange="histData[${i}].rev=parseFloat(this.value)||0;renderHistTable();calculate()" /></td>
+      <td class="td-highlight">${g!=null ? pct(g) : '—'}</td>
+      <td><input type="number" value="${r.margin}" step="0.001" style="background:transparent;border:none;color:var(--text-bright);font-family:var(--fm);font-size:12px;width:80px;text-align:right" onchange="histData[${i}].margin=parseFloat(this.value)||0;calculate()" /></td>
+    </tr>`;
+  }).join('');
+  const avgG = histData.length>1 ? histData.slice(1).reduce((s,r,i)=>{
+    const prev=histData[i].rev; return s+(r.rev-prev)/prev;},0)/(histData.length-1) : 0;
+  document.getElementById('histTable').innerHTML = `
+    <table>
+      <tr><th>Year</th><th>Revenue</th><th>YoY Growth</th><th>EBITDA Margin</th></tr>
+      ${rows}
+      <tr style="background:var(--bg2)">
+        <td style="color:var(--text-dim);font-weight:500">Avg Historical Growth</td>
+        <td></td>
+        <td class="td-highlight" style="color:var(--green)">${pct(avgG)}</td>
+        <td style="color:var(--text-dim);font-size:11px">← used to anchor projections</td>
+      </tr>
+    </table>`;
+}
+function addHistRow(){
+  const last = histData[histData.length-1];
+  const yr = last ? 'FY'+(parseInt(last.yr.replace('FY',''))+1) : 'FY2026';
+  histData.push({yr,rev:0,margin:0});
+  renderHistTable();
+}
+function removeHistRow(){
+  if(histData.length>1){ histData.pop(); renderHistTable(); calculate(); }
+}
+
+// ── BALANCE SHEET ──
+function renderBsSection(){
+  const ratingClass = {STRONG:'r-strong',GOOD:'r-good',LOW:'r-low',WATCH:'r-watch',NEUTRAL:'r-neutral'};
+  document.getElementById('bsSection').innerHTML = `<div class="bs-grid">${
+    bsData.map(r=>`<div class="bs-row">
+      <span class="bs-rating ${ratingClass[r.rating]||'r-neutral'}">${r.rating}</span>
+      <div class="bs-content">
+        <div class="bs-metric">${r.metric}</div>
+        <div class="bs-value">${r.value}</div>
+        <div class="bs-note">${r.note}</div>
+      </div>
+    </div>`).join('')
+  }</div>`;
+}
+
+// ── RISK TABLE ──
+function renderRiskTable(){
+  document.getElementById('riskTable').innerHTML = `
+    <tr><th style="text-align:left">Severity</th><th style="text-align:left">Risk</th><th style="text-align:left">Detail</th></tr>
+    ${riskData.map(r=>`<tr>
+      <td class="risk-${r.severity.toLowerCase()}">${r.severity}</td>
+      <td style="color:var(--text-bright);font-weight:500;min-width:160px">${r.risk}</td>
+      <td style="color:var(--text-dim);font-size:11px;line-height:1.5">${r.detail}</td>
+    </tr>`).join('')}`;
+}
+
+// ── CORE DCF CALCULATION ──
+// ── TAB SWITCHING ──
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  const btn  = document.getElementById('tab-' + name);
+  const pane = document.getElementById('pane-' + name);
+  if(btn)  btn.classList.add('tab-active');
+  if(pane) pane.classList.add('active');
+}
+
+// ── VALUATION MODE ──
+let valuationMode = 'dcf';  // 'dcf' | 'growth'
+let _dcfIV    = 0;
+let _growthIV = 0;
+
+function setMode(m){
+  valuationMode = m;
+  const isDCF = m === 'dcf';
+  document.getElementById('btnDCF').className    = 'mode-btn' + (isDCF ? ' active-dcf' : '');
+  document.getElementById('btnGrowth').className = 'mode-btn' + (!isDCF ? ' active-growth' : '');
+  document.getElementById('calcBtn').textContent = isDCF ? '▶  Recalculate DCF' : '▶  Recalculate Growth Model';
+  document.getElementById('calcBtn').style.background = isDCF ? 'var(--green)' : 'var(--amber)';
+  document.getElementById('modeInfo').innerHTML = isDCF
+    ? '<strong style="color:var(--green)">DCF Mode:</strong> Projects Free Cash Flow over 5 years, discounts at WACC, adds terminal value via Gordon Growth. Best for cash-generative businesses with predictable margins.'
+    : '<strong style="color:var(--amber)">Growth Model:</strong> Projects EPS growth over 10 years (2 phases), applies a terminal P/E exit multiple, discounts all future earnings back at your required return rate. Best for high-growth or earnings-driven stocks.';
+  // Show/hide DCF-only and growth-only sections
+  document.getElementById('growthInputs').style.display = isDCF ? 'none' : 'block';
+  // Update MOS info text
+  document.getElementById('mosTitle').textContent = isDCF
+    ? 'Margin of Safety (MOS) — Buy-Price Analysis'
+    : 'Margin of Safety — Growth Model Fair Value';
+  document.getElementById('mosInfo').innerHTML = isDCF
+    ? 'The DCF gives a <strong>point estimate</strong> — but estimates are wrong. MOS = the discount you demand before buying. Typically <strong>20–30%</strong> for growth stocks; <strong>30–40%</strong> for cyclicals.'
+    : 'The Growth Model fair value is based on projected EPS and a terminal P/E. MOS = how much below fair value you are willing to buy. <strong>Higher MOS = more downside protection.</strong>';
+  calculate();
+}
+
+// ── MAIN CALCULATE DISPATCHER ──
+function calculate(){
+  document.getElementById('footerDate').textContent = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  if(valuationMode === 'growth') calcGrowth();
+  else calcDCF();
+}
+
+// ── DCF MODEL ──
+function calcDCF(){
+  const P   = +document.getElementById('stockPrice').value || 302;
+  const SO  = +document.getElementById('sharesOut').value  || 127;
+  const ND  = +document.getElementById('netDebt').value    || -150;
+  const W   = +document.getElementById('wacc').value       || 0.14;
+  const R0  = +document.getElementById('baseRev').value    || 2158.39;
+  const BY  = +document.getElementById('baseYear').value   || 2025;
+  const g12 = +document.getElementById('gr12').value  || 0.60;
+  const g35 = +document.getElementById('gr35').value  || 0.30;
+  const tg  = +document.getElementById('tgr').value   || 0.07;
+  const em1 = +document.getElementById('em1').value   || 0.165;
+  const em5 = +document.getElementById('em5').value   || 0.22;
+  const dna = +document.getElementById('dna').value   || 0.025;
+  const cp  = +document.getElementById('capex').value || 0.08;
+  const nwc = +document.getElementById('nwc').value   || 0.04;
+  const tax = +document.getElementById('taxRate').value || 0.25;
+
+  const years = [1,2,3,4,5];
+  const yrs   = years.map(i=>BY+i);
+  const growthRates = years.map(i=>i<=2?g12:g35);
+  const revs = [R0];
+  for(let i=0;i<5;i++) revs.push(revs[revs.length-1]*(1+growthRates[i]));
+  const projRevs = revs.slice(1);
+  const margins  = years.map(i=>em1+(em5-em1)*((i-1)/4));
+  const ebitda   = projRevs.map((r,i)=>r*margins[i]);
+  const dnaArr   = projRevs.map(r=>r*dna);
+  const ebit     = ebitda.map((e,i)=>e-dnaArr[i]);
+  const nopat    = ebit.map(e=>e*(1-tax));
+  const capexArr = projRevs.map(r=>r*cp);
+  const nwcArr   = projRevs.map(r=>r*nwc);
+  const fcf      = nopat.map((n,i)=>n+dnaArr[i]-capexArr[i]-nwcArr[i]);
+  const discFact = years.map(i=>Math.pow(1/(1+W),i));
+  const pvFCF    = fcf.map((f,i)=>f*discFact[i]);
+  const sumPV    = pvFCF.reduce((a,b)=>a+b,0);
+  const tv       = fcf[4]*(1+tg)/(W-tg);
+  const pvTV     = tv*discFact[4];
+  const ev       = sumPV+pvTV;
+  const eq       = ev-ND;
+  const iv       = eq/SO;
+  const upside   = (iv-P)/P;
+  const cur      = currentCurrency;
+
+  // FCF Table
+  document.getElementById('projTable').innerHTML = `
+    <tr><th></th><th>FY${BY} base</th>${yrs.map(y=>`<th class="yr">FY${y}E</th>`).join('')}</tr>
+    <tr class="tr-revenue"><td>Revenue (${cur})</td><td>${fmt(R0)}</td>${projRevs.map(r=>`<td>${fmt(r)}</td>`).join('')}</tr>
+    <tr class="sub"><td>&nbsp; EBITDA Margin</td><td></td>${margins.map(m=>`<td>${pct(m)}</td>`).join('')}</tr>
+    <tr><td>EBITDA</td><td></td>${ebitda.map(v=>`<td>${fmt(v)}</td>`).join('')}</tr>
+    <tr class="sub"><td>&nbsp; D&A</td><td></td>${dnaArr.map(v=>`<td>(${fmt(v)})</td>`).join('')}</tr>
+    <tr class="tr-ebit"><td>EBIT</td><td></td>${ebit.map(v=>`<td>${fmt(v)}</td>`).join('')}</tr>
+    <tr class="sub"><td>&nbsp; NOPAT (after tax)</td><td></td>${nopat.map(v=>`<td>${fmt(v)}</td>`).join('')}</tr>
+    <tr class="sub"><td>&nbsp; + D&A</td><td></td>${dnaArr.map(v=>`<td>${fmt(v)}</td>`).join('')}</tr>
+    <tr class="sub"><td>&nbsp; − CapEx</td><td></td>${capexArr.map(v=>`<td>(${fmt(v)})</td>`).join('')}</tr>
+    <tr class="sub"><td>&nbsp; − ΔNWC</td><td></td>${nwcArr.map(v=>`<td>(${fmt(v)})</td>`).join('')}</tr>
+    <tr class="tr-fcf"><td>Free Cash Flow (UFCF)</td><td></td>${fcf.map(v=>`<td>${fmt(v)}</td>`).join('')}</tr>
+    <tr class="tr-pv"><td>Discount Factor (WACC=${pct(W)})</td><td></td>${discFact.map(v=>`<td>${v.toFixed(4)}</td>`).join('')}</tr>
+    <tr class="tr-pv"><td>PV of FCF</td><td></td>${pvFCF.map(v=>`<td>${fmt(v)}</td>`).join('')}</tr>`;
+
+  _dcfIV = iv;
+  renderValCards([
+    {label:'Sum PV of FCF (Yrs 1–5)', value:fmtC(sumPV), sub:'Discounted FCFs, yrs 1–5'},
+    {label:'PV of Terminal Value',     value:fmtC(pvTV),  sub:'Gordon Growth Model, discounted to today'},
+    {label:'Enterprise Value',         value:fmtC(ev),    sub:'PV(FCF) + PV(TV)'},
+    {label:'Equity Value',             value:fmtC(eq),    sub:'EV − Net Debt'+(ND<0?' (+ net cash)':'')},
+    {label:'Intrinsic Value / Share',  value:iv.toFixed(2), sub:'DCF fair value — no MOS', color:'green'},
+    {label:'Current Price',            value:P.toFixed(2),  sub:'Market price'},
+  ], 'valGridDCF');
+  renderSummary(_dcfIV, _growthIV, P, upside, _growthIV>0?(_growthIV-P)/_growthIV:0, 'DCF');
+  renderMOS(iv, P, 'DCF');
+}
+
+// ── GROWTH MODEL ──
+function calcGrowth(){
+  const P      = +document.getElementById('stockPrice').value || 302;
+  const eps0   = +document.getElementById('baseEPS').value    || 4.50;
+  const gr15   = +document.getElementById('epsGr15').value    || 0.20;
+  const gr610  = +document.getElementById('epsGr610').value   || 0.12;
+  const termPE = +document.getElementById('termPE').value     || 20;
+  const rr     = +document.getElementById('reqReturn').value  || 0.12;
+  const div    = +document.getElementById('divPerSh').value   || 0;
+  const BY     = +document.getElementById('baseYear').value   || 2025;
+
+  // Project EPS 10 years
+  const epsArr = [eps0];
+  for(let i=1;i<=10;i++){
+    const g = i<=5 ? gr15 : gr610;
+    epsArr.push(epsArr[epsArr.length-1]*(1+g));
+  }
+  const projEPS = epsArr.slice(1);  // yr1..yr10
+
+  // Terminal price at end of yr10, discounted dividends each year
+  const termPrice = projEPS[9] * termPE;
+  const discFactors = Array.from({length:10},(_,i)=>Math.pow(1/(1+rr),i+1));
+  const pvDivs  = discFactors.map(df=>div*df);
+  const pvTerm  = termPrice * discFactors[9];
+  const sumPVDivs = pvDivs.reduce((a,b)=>a+b,0);
+  const iv = sumPVDivs + pvTerm;
+  const upside = (iv - P) / P;
+
+  // Growth Table
+  const yrs = Array.from({length:10},(_,i)=>BY+i+1);
+  const phaseLabel = i => i < 5 ? `Phase 1 (${pct(gr15)}/yr)` : `Phase 2 (${pct(gr610)}/yr)`;
+  document.getElementById('growthTable').innerHTML = `
+    <tr>
+      <th style="text-align:left">Year</th>
+      <th>Phase</th>
+      <th>EPS</th>
+      <th>YoY Growth</th>
+      <th>Dividend</th>
+      <th>Discount Factor (${pct(rr)})</th>
+      <th>PV of Dividend</th>
+    </tr>
+    ${projEPS.map((e,i)=>`
+    <tr class="${i===9?'tr-fcf':''}">
+      <td style="color:var(--text-dim)">FY${yrs[i]}E</td>
+      <td style="font-size:11px;color:var(--text-dim)">${phaseLabel(i)}</td>
+      <td style="color:var(--amber);font-weight:500">${e.toFixed(2)}</td>
+      <td style="color:var(--text)">${pct(i<5?gr15:gr610)}</td>
+      <td style="color:var(--text-dim)">${div>0?div.toFixed(2):'—'}</td>
+      <td style="color:var(--blue)">${discFactors[i].toFixed(4)}</td>
+      <td style="color:var(--blue)">${div>0?pvDivs[i].toFixed(2):'—'}</td>
+    </tr>`).join('')}
+    <tr style="background:var(--bg2)">
+      <td colspan="2" style="color:var(--text-dim);font-weight:500">Terminal Price (EPS × P/E)</td>
+      <td style="color:var(--green);font-weight:600">${projEPS[9].toFixed(2)} × ${termPE} = ${termPrice.toFixed(2)}</td>
+      <td></td><td></td>
+      <td style="color:var(--blue)">${discFactors[9].toFixed(4)}</td>
+      <td style="color:var(--green);font-weight:600">PV = ${pvTerm.toFixed(2)}</td>
+    </tr>
+    <tr style="background:var(--panel)">
+      <td colspan="6" style="color:var(--text-dim);font-weight:500">PV of all Dividends (${yrs[0]}–${yrs[9]})</td>
+      <td style="color:var(--blue);font-weight:600">${sumPVDivs.toFixed(2)}</td>
+    </tr>`;
+
+  _growthIV = iv;
+  renderValCards([
+    {label:'Year-10 EPS',          value:projEPS[9].toFixed(2), sub:'After '+pct(gr15)+' then '+pct(gr610)+' growth'},
+    {label:'Terminal Price (Yr10)',value:termPrice.toFixed(2),   sub:'EPS x '+termPE+'x P/E exit multiple'},
+    {label:'PV of Terminal Price', value:pvTerm.toFixed(2),      sub:'Discounted at '+pct(rr)+' for 10 yrs', color:'green'},
+    {label:'PV of All Dividends',  value:sumPVDivs.toFixed(2),   sub:div>0?'Cumulative discounted dividends':'No dividend (0)', color:div>0?'blue':''},
+    {label:'Growth Fair Value / Share', value:iv.toFixed(2),    sub:'PV(Terminal) + PV(Dividends)', color:'amber'},
+    {label:'Current Price',        value:P.toFixed(2),           sub:'Market price'},
+  ], 'valGridGrowth');
+  renderSummary(_dcfIV, _growthIV, P, _dcfIV>0?(_dcfIV-P)/_dcfIV:0, upside, 'Growth');
+  renderMOS(iv, P, 'Growth');
+}
+
+// ── SHARED RENDERERS ──
+
+// Summary tab: hero cards + compare grid
+function renderSummary(dcfIV, growthIV, P, dcfUpside, growthUpside, modelName){
+  const isDCF = modelName === 'DCF';
+  const activeIV     = isDCF ? dcfIV     : growthIV;
+  const activeUpside = isDCF ? dcfUpside : growthUpside;
+  const upCls = activeUpside>=0?'upside-pos':'upside-neg';
+  const upSign= activeUpside>=0?'▲ +':'▼ ';
+  const ivColor = isDCF ? 'var(--green)' : 'var(--amber)';
+  const hlClass = isDCF ? 'highlight' : 'highlight-amber';
+
+  document.getElementById('summaryHero').innerHTML = `
+    <div class="hero-card ${hlClass}">
+      <div class="hero-label">${modelName} Intrinsic / Fair Value</div>
+      <div class="hero-value" style="color:${ivColor}">${activeIV.toFixed(2)}</div>
+      <div class="hero-sub">Per share, no safety margin applied</div>
+      <div class="hero-badge ${upCls}">${upSign}${pct(Math.abs(activeUpside))} vs current price</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-label">Current Market Price</div>
+      <div class="hero-value" style="color:var(--text-bright)">${P.toFixed(2)}</div>
+      <div class="hero-sub">Update in Market Data inputs above</div>
+      ${dcfIV>0&&growthIV>0?`<div style="font-size:11px;color:var(--text-dim);margin-top:10px">
+        DCF: <strong style="color:var(--green)">${dcfIV.toFixed(2)}</strong> &nbsp;|&nbsp;
+        Growth: <strong style="color:var(--amber)">${growthIV.toFixed(2)}</strong> &nbsp;|&nbsp;
+        Avg: <strong style="color:var(--text-bright)">${((dcfIV+growthIV)/2).toFixed(2)}</strong>
+      </div>`:''}
+    </div>`;
+
+  // Compare grid: MOS buy prices at 10/20/30%
+  const mosSamples = [0.10, 0.20, 0.30];
+  document.getElementById('compareGrid').innerHTML =
+    mosSamples.map(m=>{
+      const bp = activeIV*(1-m);
+      const ok = bp >= P;
+      return `<div class="compare-card">
+        <div class="compare-card-label">${pct(m)} MOS Buy Price</div>
+        <div class="compare-card-value" style="color:${ok?'var(--green)':'var(--red)'}">${bp.toFixed(2)}</div>
+        <div class="compare-card-sub">${ok?'✅ Below current price — BUY zone':'❌ Above current price'}</div>
+      </div>`;
+    }).join('') +
+    `<div class="compare-card">
+      <div class="compare-card-label">Price / Fair Value</div>
+      <div class="compare-card-value" style="color:${P/activeIV<1?'var(--green)':'var(--red)'}">${(P/activeIV).toFixed(2)}x</div>
+      <div class="compare-card-sub">${P/activeIV<1?'Trading below intrinsic':'Trading above intrinsic'}</div>
+    </div>
+    <div class="compare-card">
+      <div class="compare-card-label">25% MOS Buy Price</div>
+      <div class="compare-card-value" style="color:${activeIV*0.75>=P?'var(--green)':'var(--red)'}">${(activeIV*0.75).toFixed(2)}</div>
+      <div class="compare-card-sub">${activeIV*0.75>=P?'✅ In buy range':'❌ Not yet at MOS'}</div>
+    </div>
+    <div class="compare-card">
+      <div class="compare-card-label">Blended Fair Value</div>
+      <div class="compare-card-value" style="color:var(--text-bright)">${dcfIV>0&&growthIV>0?((dcfIV+growthIV)/2).toFixed(2):activeIV.toFixed(2)}</div>
+      <div class="compare-card-sub">Average of both models</div>
+    </div>`;
+}
+
+// Detail val-grid for DCF or Growth tab
+function renderValCards(cards, targetId){
+  const colorMap = {green:'var(--green)',amber:'var(--amber)',blue:'var(--blue)',red:'var(--red)','':'var(--text-bright)'};
+  const el = document.getElementById(targetId);
+  if(!el) return;
+  el.innerHTML = cards.map(c=>`
+    <div class="val-card">
+      <div class="val-card-label">${c.label}</div>
+      <div class="val-card-value" style="color:${colorMap[c.color||'']}">${c.value}</div>
+      <div class="val-card-sub">${c.sub}</div>
+    </div>`).join('');
+}
+
+// MOS table in summary tab
+function renderMOS(iv, P, modelName){
+  const isDCF = modelName === 'DCF';
+  document.getElementById('mosTitle').textContent = isDCF
+    ? 'Margin of Safety — DCF Buy-Price Analysis'
+    : 'Margin of Safety — Growth Model Buy-Price Analysis';
+  document.getElementById('mosInfo').innerHTML = isDCF
+    ? 'DCF is a <strong>point estimate</strong> — MOS protects against forecast errors. Typically <strong>20–30%</strong> for growth stocks; <strong>30–40%</strong> for high-risk names.'
+    : 'Growth model fair value based on projected EPS and terminal P/E. MOS = how far below fair value you buy. <strong>Higher MOS = more downside protection.</strong>';
+  const mosList = [0.10,0.15,0.20,0.25,0.30,0.35,0.40];
+  document.getElementById('mosTable').innerHTML =
+    '<tr><th>MOS %</th><th>Max Buy Price</th><th>vs Current Price</th><th>Signal</th></tr>' +
+    mosList.map(m=>{
+      const maxBuy = iv*(1-m);
+      const vsP = (maxBuy-P)/P;
+      const ok = maxBuy >= P;
+      return '<tr>' +
+        '<td>'+pct(m)+'</td>' +
+        '<td style="color:var(--amber);font-weight:500">'+maxBuy.toFixed(2)+'</td>' +
+        '<td class="'+(ok?'mos-buy':'mos-warn')+'" style="font-weight:600">'+(vsP>=0?'+':'')+pct(vsP)+'</td>' +
+        '<td style="font-size:11px;color:var(--text-dim)">'+(ok
+          ?'✅ Buy at or below '+maxBuy.toFixed(2)+' — attractive entry'
+          :'❌ Price above MOS threshold — high conviction needed')+'</td>' +
+      '</tr>';
+    }).join('');
+}
+
+// ── DATABASE SAVE ──
+function toggleApiConfig(){
+  const el = document.getElementById('apiConfig');
+  el.classList.toggle('open');
+}
+
+function buildPayload(){
+  const g = id => parseFloat(document.getElementById(id).value) || 0;
+  const gs = id => document.getElementById(id).value.trim();
+
+  // Gather comments from rendered DOM
+  const comments = [];
+  let order = 0;
+
+  // Rationale bullets
+  document.querySelectorAll('#whyContent div').forEach(el => {
+    const txt = el.textContent.replace(/^▸\s*/,'').trim();
+    if(txt && txt !== 'Fetching analysis…')
+      comments.push({comment_type:'RATIONALE', body: txt, sort_order: order++, source:'AI'});
+  });
+
+  // Risks
+  (riskData||[]).forEach((r,i) => {
+    const t = r.severity === 'HIGH' ? 'RISK_HIGH' : r.severity === 'MED' ? 'RISK_MED' : 'RISK_LOW';
+    comments.push({comment_type: t, title: r.risk, body: r.detail, sort_order: i, source:'AI'});
+  });
+
+  // Stress
+  document.querySelectorAll('#stressContent div').forEach((el,i) => {
+    const txt = el.textContent.trim();
+    if(!txt || txt === 'Fetching analysis…') return;
+    const isBull = el.textContent.includes('✅');
+    comments.push({comment_type: isBull ? 'STRESS_BULL' : 'STRESS_BEAR', body: txt, sort_order: i, source:'AI'});
+  });
+
+  // Balance sheet
+  (bsData||[]).forEach((b,i) => {
+    comments.push({comment_type:'BALANCE', title: b.metric+' ['+b.rating+']: '+b.value, body: b.note, sort_order: i, source:'AI'});
+  });
+
+  // Build calculations array
+  const calcs = [];
+  const price = g('stockPrice');
+
+  if(_dcfIV > 0){
+    calcs.push({
+      calc_type:       'DCF',
+      intrinsic_value: _dcfIV,
+      current_price:   price,
+      upside_pct:      ((_dcfIV - price) / price * 100),
+      mos_10_price:    _dcfIV * 0.90,
+      mos_20_price:    _dcfIV * 0.80,
+      mos_25_price:    _dcfIV * 0.75,
+      mos_30_price:    _dcfIV * 0.70,
+      blended_fair_value: (_dcfIV + (_growthIV||0)) / ((_growthIV > 0 ? 2 : 1)),
+    });
+  }
+
+  if(_growthIV > 0){
+    calcs.push({
+      calc_type:        'GROWTH',
+      intrinsic_value:  _growthIV,
+      current_price:    price,
+      upside_pct:       ((_growthIV - price) / price * 100),
+      mos_10_price:     _growthIV * 0.90,
+      mos_20_price:     _growthIV * 0.80,
+      mos_25_price:     _growthIV * 0.75,
+      mos_30_price:     _growthIV * 0.70,
+      eps_year10:       g('baseEPS') * Math.pow(1+g('epsGr15'),5) * Math.pow(1+g('epsGr610'),5),
+      terminal_pe:      g('termPE'),
+      blended_fair_value: ((_dcfIV||0) + _growthIV) / ((_dcfIV > 0 ? 2 : 1)),
+    });
+  }
+
+  // Historical data
+  const hist = (histData||[]).map(r => ({yr: r.yr, rev: r.rev, margin: r.margin}));
+
+  return {
+    input: {
+      ticker:             currentTicker,
+      company_name:       currentCompany,
+      exchange:           document.getElementById('headerExchange').textContent,
+      currency_unit:      currentCurrency,
+      stock_price:        g('stockPrice'),
+      shares_outstanding: g('sharesOut'),
+      net_debt:           g('netDebt'),
+      wacc:               g('wacc'),
+      base_revenue:       g('baseRev'),
+      base_year:          parseInt(document.getElementById('baseYear').value)||null,
+      growth_yr1_2:       g('gr12'),
+      growth_yr3_5:       g('gr35'),
+      terminal_growth:    g('tgr'),
+      ebitda_margin_yr1:  g('em1'),
+      ebitda_margin_yr5:  g('em5'),
+      dna_pct_rev:        g('dna'),
+      capex_pct_rev:      g('capex'),
+      nwc_pct_rev:        g('nwc'),
+      tax_rate:           g('taxRate'),
+      base_eps:           g('baseEPS'),
+      eps_growth_yr1_5:   g('epsGr15'),
+      eps_growth_yr6_10:  g('epsGr610'),
+      terminal_pe:        g('termPE'),
+      required_return:    g('reqReturn'),
+      dividend_per_share: g('divPerSh'),
+      historical_data:    hist,
+      generated_at:       new Date().toISOString(),
+      created_by:         document.getElementById('apiUser').value.trim() || null,
+    },
+    calculations: calcs,
+    comments: document.getElementById('saveComments').value === 'yes' ? comments : [],
+  };
+}
+
+async function saveToDatabase(){
+  const statusEl = document.getElementById('saveStatus');
+  const apiBase  = (document.getElementById('apiUrl').value || 'http://localhost:8000').replace(/\/$/,'');
+  function setS(cls, msg){ statusEl.className='save-status '+cls; statusEl.style.display='block'; statusEl.textContent=msg; }
+
+  if(!currentTicker){ setS('save-err','✗ No ticker loaded — run AI Autofill or Apply first.'); return; }
+  if(_dcfIV === 0 && _growthIV === 0){ setS('save-err','✗ No calculation results yet — click Recalculate first.'); return; }
+
+  setS('save-loading','💾 Saving '+currentTicker+' to database…');
+
+  try {
+    const payload = buildPayload();
+    const resp = await fetch(apiBase+'/api/valuations/save', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+    });
+    if(!resp.ok){
+      const err = await resp.json().catch(()=>({detail:'HTTP '+resp.status}));
+      throw new Error(err.detail || 'HTTP '+resp.status);
+    }
+    const data = await resp.json();
+    setS('save-ok',
+      '✓ Saved! input_id='+data.input_id+
+      ' | '+data.calculation_ids.length+' calc(s)'+
+      ' | '+data.comment_ids.length+' comment(s)'+
+      ' | '+data.message
+    );
+  } catch(e){
+    setS('save-err','✗ Save failed: '+e.message+'. Is the API running at '+apiBase+'?');
+  }
+}
+
+// ── FORMATTERS ──
+function fmt(n){ return n==null?'—':n.toLocaleString('en-IN',{maximumFractionDigits:1,minimumFractionDigits:1}); }
+function fmtC(n){ return n==null?'—':n.toLocaleString('en-IN',{maximumFractionDigits:0}); }
+function pct(n){ if(n==null) return '—'; return (n*100).toFixed(1)+'%'; }
+</script>
+</body>
+</html>
