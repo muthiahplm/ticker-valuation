@@ -387,6 +387,84 @@ def delete_valuation(input_id: int):
 
 
 
+
+@app.get(
+    "/api/valuations",
+    summary="All tickers saved — grouped with latest summary per ticker",
+)
+def get_all_tickers():
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            # All distinct tickers with their latest price + both model IVs
+            cur.execute("""
+                WITH ranked AS (
+                    SELECT
+                        ti.id, ti.ticker, ti.company_name, ti.exchange,
+                        ti.currency_unit, ti.stock_price, ti.generated_at,
+                        ROW_NUMBER() OVER (PARTITION BY ti.ticker ORDER BY ti.generated_at DESC) AS rn
+                    FROM dbo.TickerInput ti
+                )
+                SELECT
+                    r.ticker, r.company_name, r.exchange, r.currency_unit,
+                    r.stock_price AS latest_price, r.generated_at AS last_updated,
+                    dcf.intrinsic_value AS dcf_iv, dcf.upside_pct AS dcf_upside, dcf.verdict AS dcf_verdict,
+                    grw.intrinsic_value AS growth_iv, grw.upside_pct AS growth_upside, grw.verdict AS growth_verdict,
+                    (SELECT COUNT(*) FROM dbo.TickerInput WHERE ticker = r.ticker) AS total_runs
+                FROM ranked r
+                LEFT JOIN dbo.TickerCalculation dcf
+                    ON dcf.input_id = r.id AND dcf.calc_type = 'DCF'
+                LEFT JOIN dbo.TickerCalculation grw
+                    ON grw.input_id = r.id AND grw.calc_type = 'GROWTH'
+                WHERE r.rn = 1
+                ORDER BY r.ticker
+            """)
+            return _rows_to_list(cur, cur.fetchall())
+    except pyodbc.Error as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get(
+    "/api/valuations/{ticker}/runs",
+    summary="All runs for a ticker — each run with its DCF + Growth results",
+)
+def get_ticker_runs(ticker: str):
+    ticker = ticker.strip().upper()
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT
+                    ti.id AS input_id,
+                    ti.ticker, ti.company_name, ti.stock_price,
+                    ti.currency_unit, ti.generated_at, ti.created_by,
+                    dcf.intrinsic_value  AS dcf_iv,
+                    dcf.upside_pct       AS dcf_upside,
+                    dcf.verdict          AS dcf_verdict,
+                    dcf.mos_20_price     AS dcf_mos20,
+                    dcf.mos_30_price     AS dcf_mos30,
+                    grw.intrinsic_value  AS growth_iv,
+                    grw.upside_pct       AS growth_upside,
+                    grw.verdict          AS growth_verdict,
+                    grw.mos_20_price     AS growth_mos20,
+                    grw.mos_30_price     AS growth_mos30,
+                    CASE
+                        WHEN dcf.intrinsic_value IS NOT NULL AND grw.intrinsic_value IS NOT NULL
+                        THEN ROUND((dcf.intrinsic_value + grw.intrinsic_value) / 2, 4)
+                        ELSE COALESCE(dcf.intrinsic_value, grw.intrinsic_value)
+                    END AS blended_iv
+                FROM dbo.TickerInput ti
+                LEFT JOIN dbo.TickerCalculation dcf
+                    ON dcf.input_id = ti.id AND dcf.calc_type = 'DCF'
+                LEFT JOIN dbo.TickerCalculation grw
+                    ON grw.input_id = ti.id AND grw.calc_type = 'GROWTH'
+                WHERE ti.ticker = ?
+                ORDER BY ti.generated_at DESC
+            """, ticker)
+            return _rows_to_list(cur, cur.fetchall())
+    except pyodbc.Error as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/")
 def root():
     return {"status": "DCF Valuation API is running", "docs": "/docs", "health": "/api/health"}

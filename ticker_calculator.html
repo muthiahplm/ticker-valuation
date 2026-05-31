@@ -239,7 +239,6 @@ footer{margin-top:48px;padding:24px 0;border-top:1px solid var(--border);display
     </div>
   </div>
   <button class="btn-load" onclick="autofillWithAI()">⚡ AI Autofill</button>
-  <button class="btn-load" style="background:var(--panel2);color:var(--text-bright);border:1px solid var(--border)" onclick="applyHeader()">Apply →</button>
 </div>
 <div id="aiStatus" class="ai-status"></div>
 
@@ -329,6 +328,9 @@ footer{margin-top:48px;padding:24px 0;border-top:1px solid var(--border);display
 <!-- GROWTH MODEL EXTRA INPUTS -->
 <div class="growth-inputs" id="growthInputs">
   <div class="panel-title">Growth Model Inputs</div>
+  <div style="font-size:11px;color:var(--text-dim);padding:6px 0 10px;line-height:1.6;border-bottom:1px solid var(--border);margin-bottom:12px">
+    💡 <strong style="color:var(--amber)">Note:</strong> Growth Model requires <strong>positive EPS</strong> as Base EPS. For pre-profit companies (negative EPS), use <strong>DCF mode</strong> or enter a forward analyst EPS estimate instead.
+  </div>
   <div class="grid3">
     <div class="iw"><div class="il">Base EPS / Share</div><input class="ainput" type="number" id="baseEPS" value="4.50" step="0.01" oninput="calculate()"><div class="fb">Current year EPS (or TTM)</div></div>
     <div class="iw"><div class="il">EPS Growth Yr 1–5</div><input class="ainput" type="number" id="epsGr15" value="0.20" step="0.001" oninput="calculate()"><div class="fb">High-growth phase CAGR</div></div>
@@ -383,6 +385,7 @@ footer{margin-top:48px;padding:24px 0;border-top:1px solid var(--border);display
 
   <!-- TAB: GROWTH PROJECTION -->
   <div class="tab-pane" id="pane-growth">
+    <div id="growthModelWarn" style="display:none;background:var(--amber-dim);border:1px solid rgba(255,184,48,.4);border-radius:6px;padding:14px 18px;margin-bottom:16px;font-size:12px;color:var(--text);line-height:1.7"></div>
     <div class="sec-label">EPS Growth Projection</div>
     <div class="panel">
       <div class="panel-title">10-Year EPS Model — Two-Phase Growth</div>
@@ -1028,6 +1031,21 @@ function calcGrowth(){
     </tr>`;
 
   _growthIV = iv;
+
+  // ── Warn if result is nonsensical ──
+  const growthWarnEl = document.getElementById('growthModelWarn');
+  if(growthWarnEl){
+    if(eps0 <= 0){
+      growthWarnEl.style.display = 'block';
+      growthWarnEl.innerHTML = '<strong>⚠️ Warning:</strong> Base EPS is negative ('+eps0.toFixed(2)+'). The Growth Model uses EPS × P/E to compute terminal value — a negative EPS produces a negative fair value, which is mathematically correct but not meaningful. <strong>Solutions:</strong> (1) Use <strong>DCF mode</strong> instead — it works for pre-profit companies, (2) Enter a <strong>forward EPS estimate</strong> (analyst consensus 2–3 years out) as Base EPS, or (3) Use revenue-per-share as a proxy.';
+    } else if(iv < 0){
+      growthWarnEl.style.display = 'block';
+      growthWarnEl.innerHTML = '<strong>⚠️ Warning:</strong> Growth Model fair value is negative ('+iv.toFixed(2)+'). This usually means the Required Return ('+pct(rr)+') is too high relative to the EPS growth rate, or the terminal P/E ('+termPE+'x) is too low. Try: lower Required Return, higher terminal P/E, or switch to DCF mode.';
+    } else {
+      growthWarnEl.style.display = 'none';
+    }
+  }
+
   renderValCards([
     {label:'Year-10 EPS',          value:projEPS[9].toFixed(2), sub:'After '+pct(gr15)+' then '+pct(gr610)+' growth'},
     {label:'Terminal Price (Yr10)',value:termPrice.toFixed(2),   sub:'EPS x '+termPE+'x P/E exit multiple'},

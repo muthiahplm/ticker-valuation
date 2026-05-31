@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ticker Valuation Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0b1a0e; --bg2:#0f2214; --panel:#1a3320; --panel2:#1f3d27;
+  --border:#2a4d33; --border2:rgba(42,77,51,0.5);
+  --green:#2dff7a; --green2:#1adb5f; --green-dim:rgba(45,255,122,0.1);
+  --amber:#ffb830; --amber-dim:rgba(255,184,48,0.1);
+  --red:#ff5c5c; --red-dim:rgba(255,92,92,0.1);
+  --blue:#5be0ff; --blue-dim:rgba(91,224,255,0.1);
+  --text:#c8e6cc; --text-dim:#6a8f72; --text-bright:#e8f5ea;
+  --fh:'Syne',sans-serif; --fd:'DM Serif Display',serif; --fm:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--fm);font-size:13px;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(45,255,122,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(45,255,122,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.wrap{max-width:1200px;margin:0 auto;padding:0 24px 60px;position:relative;z-index:1}
+
+/* HEADER */
+header{padding:36px 0 28px;border-bottom:1px solid var(--border);margin-bottom:28px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.eyebrow{font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--green);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.eyebrow::before{content:'';display:inline-block;width:24px;height:2px;background:var(--green)}
+h1{font-family:var(--fd);font-size:clamp(24px,4vw,40px);color:var(--text-bright);line-height:1.1}
+h1 span{color:var(--green)}
+.header-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+/* API CONFIG BAR */
+.config-bar{display:flex;gap:10px;align-items:center;padding:12px 16px;background:var(--panel);border:1px solid var(--border);border-radius:6px;margin-bottom:24px;flex-wrap:wrap}
+.config-bar label{font-size:11px;color:var(--text-dim);font-family:var(--fh);font-weight:700;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.config-bar input{background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--text-bright);font-family:var(--fm);font-size:13px;padding:6px 12px;outline:none;width:260px}
+.config-bar input:focus{border-color:var(--green)}
+
+/* BUTTONS */
+.btn{font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:8px 18px;border-radius:3px;cursor:pointer;border:none;transition:all .2s;white-space:nowrap}
+.btn-green{background:var(--green);color:#0b1a0e}
+.btn-green:hover{background:var(--green2);box-shadow:0 2px 12px rgba(45,255,122,.3)}
+.btn-ghost{background:transparent;color:var(--text-dim);border:1px solid var(--border)}
+.btn-ghost:hover{color:var(--text);border-color:var(--text-dim)}
+.btn-red{background:transparent;color:var(--red);border:1px solid rgba(255,92,92,.3)}
+.btn-red:hover{background:var(--red-dim)}
+.btn-sm{padding:4px 10px;font-size:10px}
+
+/* STATUS */
+.status-bar{font-size:12px;padding:8px 14px;border-radius:4px;margin-bottom:20px;display:none}
+.status-loading{background:var(--blue-dim);border:1px solid rgba(91,224,255,.3);color:var(--blue);animation:pulse 1s infinite;display:block}
+.status-err{background:var(--red-dim);border:1px solid rgba(255,92,92,.3);color:var(--red);display:block}
+.status-ok{background:var(--green-dim);border:1px solid rgba(45,255,122,.3);color:var(--green);display:block}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* STATS ROW */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px}
+.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px 16px;text-align:center}
+.stat-label{font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px}
+.stat-value{font-family:var(--fd);font-size:26px;color:var(--text-bright)}
+.stat-sub{font-size:10px;color:var(--text-dim);margin-top:3px}
+
+/* SEARCH + FILTER */
+.toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.search-box{background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--text-bright);font-family:var(--fm);font-size:13px;padding:8px 14px;outline:none;width:220px}
+.search-box:focus{border-color:var(--green)}
+.filter-btn{font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:7px 14px;border-radius:3px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-dim);transition:all .2s}
+.filter-btn.active{background:var(--green-dim);color:var(--green);border-color:rgba(45,255,122,.3)}
+.filter-btn:hover:not(.active){color:var(--text);border-color:var(--text-dim)}
+.sort-select{background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--text-dim);font-family:var(--fm);font-size:12px;padding:7px 10px;outline:none;margin-left:auto}
+
+/* TICKER CARDS */
+.ticker-grid{display:flex;flex-direction:column;gap:10px}
+.ticker-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .2s}
+.ticker-card:hover{border-color:rgba(45,255,122,.25)}
+
+/* TICKER HEADER ROW */
+.ticker-header{display:grid;grid-template-columns:180px 1fr 1fr 1fr 1fr 100px 80px;align-items:center;gap:12px;padding:14px 20px;cursor:pointer;user-select:none}
+@media(max-width:900px){.ticker-header{grid-template-columns:140px 1fr 1fr 80px}}
+.ticker-header:hover{background:rgba(45,255,122,.03)}
+
+.th-identity{display:flex;flex-direction:column;gap:3px}
+.th-ticker{font-family:var(--fh);font-size:14px;font-weight:800;letter-spacing:.08em;color:var(--green)}
+.th-company{font-size:11px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+.th-exchange{font-size:10px;color:var(--text-dim)}
+
+.th-col{display:flex;flex-direction:column;gap:3px}
+.th-col-label{font-size:9px;font-family:var(--fh);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim)}
+.th-col-value{font-size:15px;font-weight:500;color:var(--text-bright)}
+.th-col-sub{font-size:10px;color:var(--text-dim)}
+
+.verdict-badge{display:inline-block;padding:3px 8px;border-radius:2px;font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.1em;white-space:nowrap}
+.v-sb{background:rgba(45,255,122,.2);color:var(--green);border:1px solid rgba(45,255,122,.3)}
+.v-b{background:rgba(45,200,100,.15);color:#4ecb71;border:1px solid rgba(45,200,100,.25)}
+.v-h{background:rgba(255,184,48,.1);color:var(--amber);border:1px solid rgba(255,184,48,.2)}
+.v-s{background:rgba(255,92,92,.1);color:var(--red);border:1px solid rgba(255,92,92,.2)}
+.v-ss{background:rgba(255,50,50,.2);color:#ff3333;border:1px solid rgba(255,50,50,.3)}
+
+.expand-icon{color:var(--text-dim);font-size:16px;text-align:right;transition:transform .25s}
+.expanded .expand-icon{transform:rotate(180deg)}
+
+.run-count{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:2px 8px;font-size:10px;color:var(--text-dim);white-space:nowrap}
+
+/* RUNS PANEL */
+.runs-panel{display:none;border-top:1px solid var(--border);background:var(--bg2)}
+.runs-panel.open{display:block}
+
+.runs-loading{padding:20px;text-align:center;color:var(--blue);font-size:12px;animation:pulse 1s infinite}
+
+.runs-table{width:100%;border-collapse:collapse}
+.runs-table th{font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);padding:10px 16px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg)}
+.runs-table th:not(:first-child){text-align:right}
+.runs-table td{padding:11px 16px;border-bottom:1px solid var(--border2);vertical-align:middle;font-size:12px}
+.runs-table td:not(:first-child){text-align:right}
+.runs-table tr:last-child td{border-bottom:none}
+.runs-table tr:hover td{background:rgba(45,255,122,.02)}
+
+.date-cell{display:flex;flex-direction:column;gap:2px}
+.date-main{color:var(--text);font-weight:500}
+.date-sub{font-size:10px;color:var(--text-dim)}
+.by-badge{font-size:10px;color:var(--blue);margin-top:2px}
+
+.iv-cell{display:flex;flex-direction:column;gap:2px;align-items:flex-end}
+.iv-value{font-weight:600}
+.iv-upside{font-size:10px}
+.up{color:var(--green)}
+.dn{color:var(--red)}
+.na{color:var(--text-dim)}
+
+.blended-cell{font-family:var(--fd);font-size:16px;text-align:right}
+
+.action-cell{display:flex;gap:6px;justify-content:flex-end}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:80px 20px;color:var(--text-dim)}
+.empty-icon{font-size:48px;margin-bottom:16px;opacity:.4}
+.empty-title{font-family:var(--fh);font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px}
+.empty-sub{font-size:12px;line-height:1.6}
+
+/* DETAIL MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+.modal-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;width:100%;max-width:900px;margin:auto;position:relative;animation:slideIn .2s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10;border-radius:10px 10px 0 0}
+.modal-title{font-family:var(--fd);font-size:22px;color:var(--text-bright)}
+.modal-title span{color:var(--green)}
+.modal-subtitle{font-size:11px;color:var(--text-dim);margin-top:3px}
+.modal-close{background:transparent;border:1px solid var(--border);color:var(--text-dim);border-radius:3px;cursor:pointer;font-size:18px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.modal-close:hover{color:var(--red);border-color:var(--red)}
+.modal-body{padding:0}
+.modal-loading{padding:60px;text-align:center;color:var(--blue);animation:pulse 1s infinite}
+
+/* MODAL TABS */
+.modal-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--bg2);overflow-x:auto}
+.modal-tab{font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:12px 18px;cursor:pointer;border:none;background:transparent;color:var(--text-dim);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s;white-space:nowrap}
+.modal-tab:hover{color:var(--text);background:rgba(45,255,122,.03)}
+.modal-tab.active{color:var(--green);border-bottom-color:var(--green);background:var(--bg)}
+.modal-pane{display:none;padding:24px}
+.modal-pane.active{display:block}
+
+/* DETAIL SECTIONS */
+.detail-section{margin-bottom:24px}
+.detail-section-title{font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--green);margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.detail-section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.detail-card{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:12px 14px}
+.detail-card-label{font-size:10px;font-family:var(--fh);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:5px}
+.detail-card-value{font-size:18px;font-weight:500;color:var(--text-bright)}
+.detail-card-value.green{color:var(--green)}
+.detail-card-value.amber{color:var(--amber)}
+.detail-card-value.blue{color:var(--blue)}
+.detail-card-sub{font-size:10px;color:var(--text-dim);margin-top:3px}
+
+/* HERO VALUATION CARDS IN MODAL */
+.modal-hero{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
+@media(max-width:600px){.modal-hero{grid-template-columns:1fr}}
+.hero-big{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:18px;text-align:center}
+.hero-big.hl-green{border-color:rgba(45,255,122,.4);box-shadow:0 0 20px rgba(45,255,122,.07)}
+.hero-big.hl-amber{border-color:rgba(255,184,48,.4);box-shadow:0 0 20px rgba(255,184,48,.07)}
+.hero-big.hl-blue{border-color:rgba(91,224,255,.3)}
+.hero-big-label{font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px}
+.hero-big-value{font-family:var(--fd);font-size:32px;line-height:1;margin-bottom:4px}
+.hero-big-sub{font-size:11px;color:var(--text-dim)}
+
+/* INPUT TABLE */
+.input-table{width:100%;border-collapse:collapse}
+.input-table tr:nth-child(even) td{background:rgba(45,77,51,.15)}
+.input-table td{padding:8px 12px;border-bottom:1px solid var(--border2);font-size:12px;vertical-align:top}
+.input-table td:first-child{color:var(--text-dim);width:220px;font-size:11px}
+.input-table td:last-child{color:var(--text-bright);text-align:right;font-weight:500}
+.input-table tr:last-child td{border-bottom:none}
+
+/* COMMENT ITEMS */
+.comment-item{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:12px 16px;margin-bottom:10px}
+.comment-type-badge{display:inline-block;font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.1em;padding:2px 8px;border-radius:2px;margin-bottom:6px}
+.ct-rat{background:var(--green-dim);color:var(--green);border:1px solid rgba(45,255,122,.2)}
+.ct-rh{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,92,92,.2)}
+.ct-rm{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(255,184,48,.2)}
+.ct-rl{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(91,224,255,.2)}
+.ct-sb{background:var(--green-dim);color:var(--green);border:1px solid rgba(45,255,122,.2)}
+.ct-sb2{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,92,92,.2)}
+.ct-bal{background:rgba(150,150,150,.1);color:#aaa;border:1px solid rgba(150,150,150,.2)}
+.ct-ana{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(91,224,255,.2)}
+.comment-title{font-size:12px;font-weight:600;color:var(--text-bright);margin-bottom:4px}
+.comment-body{font-size:12px;color:var(--text-dim);line-height:1.6}
+
+/* HIST TABLE IN MODAL */
+.hist-table{width:100%;border-collapse:collapse;margin-top:6px}
+.hist-table th{font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);padding:7px 12px;text-align:right;border-bottom:1px solid var(--border)}
+.hist-table th:first-child{text-align:left}
+.hist-table td{padding:8px 12px;border-bottom:1px solid var(--border2);font-size:12px;text-align:right;color:var(--text)}
+.hist-table td:first-child{text-align:left;color:var(--text-dim)}
+.hist-table tr:last-child td{border-bottom:none}
+
+/* MOS TABLE IN MODAL */
+.mos-mini{width:100%;border-collapse:collapse;margin-top:6px}
+.mos-mini th{font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);padding:7px 12px;border-bottom:1px solid var(--border);text-align:right}
+.mos-mini th:first-child{text-align:left}
+.mos-mini td{padding:8px 12px;border-bottom:1px solid var(--border2);font-size:12px;text-align:right}
+.mos-mini td:first-child{text-align:left;color:var(--text-dim)}
+.mos-mini tr:last-child td{border-bottom:none}
+
+/* DELETE CONFIRM */
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:center;justify-content:center}
+.confirm-box{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:28px 32px;max-width:400px;width:90%}
+.confirm-title{font-family:var(--fh);font-size:14px;font-weight:700;color:var(--text-bright);margin-bottom:8px}
+.confirm-msg{font-size:12px;color:var(--text-dim);margin-bottom:20px;line-height:1.6}
+.confirm-btns{display:flex;gap:10px;justify-content:flex-end}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HEADER -->
+<header>
+  <div>
+    <div class="eyebrow">Valuation Dashboard</div>
+    <h1>Ticker <span>Portfolio</span></h1>
+  </div>
+  <div class="header-right">
+    <button class="btn btn-green" onclick="loadAll()">↻ &nbsp;Refresh</button>
+    <button class="btn btn-ghost" onclick="openCalculator()">＋ &nbsp;New Valuation</button>
+  </div>
+</header>
+
+<!-- API CONFIG -->
+<div class="config-bar">
+  <label>API</label>
+  <input type="text" id="apiUrl" value="http://localhost:8000" placeholder="http://localhost:8000" />
+  <button class="btn btn-ghost" style="padding:6px 14px" onclick="loadAll()">Connect</button>
+  <span style="color:var(--border);margin:0 4px">|</span>
+  <label>Calculator</label>
+  <input type="text" id="calcPath" value="ticker_calculator.html" placeholder="path to ticker_calculator.html" style="width:200px" />
+  <span id="connStatus" style="font-size:11px;color:var(--text-dim);margin-left:4px">Not connected</span>
+</div>
+
+<!-- STATUS -->
+<div class="status-bar" id="statusBar"></div>
+
+<!-- STATS -->
+<div class="stats-row" id="statsRow" style="display:none">
+  <div class="stat-card">
+    <div class="stat-label">Total Tickers</div>
+    <div class="stat-value" id="statTickers">—</div>
+    <div class="stat-sub">unique stocks saved</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total Runs</div>
+    <div class="stat-value" id="statRuns">—</div>
+    <div class="stat-sub">valuation snapshots</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Strong Buy</div>
+    <div class="stat-value" id="statBuy" style="color:var(--green)">—</div>
+    <div class="stat-sub">DCF verdict</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Undervalued</div>
+    <div class="stat-value" id="statUnder" style="color:var(--amber)">—</div>
+    <div class="stat-sub">positive DCF upside</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Overvalued</div>
+    <div class="stat-value" id="statOver" style="color:var(--red)">—</div>
+    <div class="stat-sub">negative DCF upside</div>
+  </div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar" id="toolbar" style="display:none">
+  <input class="search-box" id="searchBox" placeholder="Search ticker or company…" oninput="renderCards()" />
+  <button class="filter-btn active" data-filter="all"    onclick="setFilter('all',this)">All</button>
+  <button class="filter-btn"        data-filter="buy"    onclick="setFilter('buy',this)">Buy / Strong Buy</button>
+  <button class="filter-btn"        data-filter="hold"   onclick="setFilter('hold',this)">Hold</button>
+  <button class="filter-btn"        data-filter="sell"   onclick="setFilter('sell',this)">Sell</button>
+  <select class="sort-select" id="sortSelect" onchange="renderCards()">
+    <option value="ticker">Sort: Ticker A–Z</option>
+    <option value="upside_desc">Sort: Highest Upside</option>
+    <option value="upside_asc">Sort: Lowest Upside</option>
+    <option value="date_desc">Sort: Newest First</option>
+    <option value="runs_desc">Sort: Most Runs</option>
+  </select>
+</div>
+
+<!-- TICKER CARDS -->
+<div class="ticker-grid" id="tickerGrid">
+  <div class="empty">
+    <div class="empty-icon">📊</div>
+    <div class="empty-title">No tickers loaded yet</div>
+    <div class="empty-sub">Enter your API URL above and click Connect,<br>or add valuations from the calculator.</div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detailOverlay" style="display:none" onclick="closeDetailIfBg(event)">
+  <div class="modal-box" id="detailBox">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="detailTitle">Run Details</div>
+        <div class="modal-subtitle" id="detailSubtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-loading" id="detailLoading">Loading full details…</div>
+      <div id="detailContent" style="display:none">
+        <!-- TABS -->
+        <div class="modal-tabs">
+          <button class="modal-tab active" onclick="switchModalTab('summary',this)">★ Summary</button>
+          <button class="modal-tab" onclick="switchModalTab('inputs',this)">⚙ Inputs</button>
+          <button class="modal-tab" onclick="switchModalTab('dcf',this)">📊 DCF</button>
+          <button class="modal-tab" onclick="switchModalTab('growth',this)">📈 Growth</button>
+          <button class="modal-tab" onclick="switchModalTab('comments',this)">💬 Comments</button>
+          <button class="modal-tab" onclick="switchModalTab('history',this)">📅 History</button>
+        </div>
+        <!-- PANE: SUMMARY -->
+        <div class="modal-pane active" id="mpane-summary"></div>
+        <!-- PANE: INPUTS -->
+        <div class="modal-pane" id="mpane-inputs"></div>
+        <!-- PANE: DCF -->
+        <div class="modal-pane" id="mpane-dcf"></div>
+        <!-- PANE: GROWTH -->
+        <div class="modal-pane" id="mpane-growth"></div>
+        <!-- PANE: COMMENTS -->
+        <div class="modal-pane" id="mpane-comments"></div>
+        <!-- PANE: HISTORY -->
+        <div class="modal-pane" id="mpane-history"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="confirm-overlay" id="confirmOverlay" style="display:none">
+  <div class="confirm-box">
+    <div class="confirm-title">Delete Valuation Run?</div>
+    <div class="confirm-msg" id="confirmMsg">This will permanently delete the run and all its calculations and comments.</div>
+    <div class="confirm-btns">
+      <button class="btn btn-ghost" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-red" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+let allTickers = [];
+let activeFilter = 'all';
+let pendingDeleteId = null;
+let pendingDeleteTicker = null;
+
+// ── Helpers ──────────────────────────────────────────────
+function apiBase(){ return (document.getElementById('apiUrl').value||'http://localhost:8000').replace(/\/$/,''); }
+
+function setStatus(cls, msg){
+  const el = document.getElementById('statusBar');
+  el.className = 'status-bar ' + cls;
+  el.textContent = msg;
+}
+
+function fmt(n, digits=2){
+  if(n == null) return '—';
+  return Number(n).toLocaleString('en-US', {minimumFractionDigits:digits, maximumFractionDigits:digits});
+}
+
+function fmtDate(d){
+  if(!d) return '—';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
+}
+
+function fmtDateTime(d){
+  if(!d) return '—';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'})
+    + ' ' + dt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+}
+
+function verdictClass(v){
+  if(!v) return '';
+  const m = {'STRONG BUY':'v-sb','BUY':'v-b','HOLD':'v-h','SELL':'v-s','STRONG SELL':'v-ss'};
+  return m[v] || '';
+}
+
+function upsideColor(u){
+  if(u == null) return 'var(--text-dim)';
+  return u >= 10 ? 'var(--green)' : u >= -10 ? 'var(--amber)' : 'var(--red)';
+}
+
+function setFilter(f, btn){
+  activeFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCards();
+}
+
+// ── Load all tickers from API ────────────────────────────
+async function loadAll(){
+  setStatus('status-loading', '⟳  Connecting to API and loading tickers…');
+  document.getElementById('connStatus').textContent = 'Connecting…';
+  try {
+    const resp = await fetch(apiBase() + '/api/valuations');
+    if(!resp.ok) throw new Error('HTTP ' + resp.status + ' — is the API running?');
+    allTickers = await resp.json();
+
+    document.getElementById('connStatus').textContent = '✓ Connected — ' + allTickers.length + ' ticker(s) loaded';
+    document.getElementById('connStatus').style.color = 'var(--green)';
+    document.getElementById('statsRow').style.display = 'grid';
+    document.getElementById('toolbar').style.display  = 'flex';
+
+    updateStats();
+    renderCards();
+    setStatus('status-ok', '✓ Loaded ' + allTickers.length + ' ticker(s) from database');
+    setTimeout(()=>{ document.getElementById('statusBar').style.display='none'; }, 3000);
+  } catch(e) {
+    setStatus('status-err', '✗ ' + e.message);
+    document.getElementById('connStatus').textContent = '✗ Not connected';
+    document.getElementById('connStatus').style.color = 'var(--red)';
+  }
+}
+
+// ── Stats ─────────────────────────────────────────────────
+function updateStats(){
+  const totalRuns = allTickers.reduce((s,t) => s + (t.total_runs||0), 0);
+  const strongBuy = allTickers.filter(t => t.dcf_verdict === 'STRONG BUY').length;
+  const underval  = allTickers.filter(t => (t.dcf_upside||0) > 0).length;
+  const overval   = allTickers.filter(t => (t.dcf_upside||0) < 0).length;
+
+  document.getElementById('statTickers').textContent = allTickers.length;
+  document.getElementById('statRuns').textContent    = totalRuns;
+  document.getElementById('statBuy').textContent     = strongBuy;
+  document.getElementById('statUnder').textContent   = underval;
+  document.getElementById('statOver').textContent    = overval;
+}
+
+// ── Render ticker cards ──────────────────────────────────
+function renderCards(){
+  const q      = document.getElementById('searchBox').value.toLowerCase();
+  const sort   = document.getElementById('sortSelect').value;
+
+  let filtered = allTickers.filter(t => {
+    const matchQ = !q || t.ticker.toLowerCase().includes(q)
+                      || (t.company_name||'').toLowerCase().includes(q);
+    const v = (t.dcf_verdict||'').toUpperCase();
+    const matchF =
+      activeFilter === 'all'  ||
+      (activeFilter === 'buy'  && (v === 'BUY' || v === 'STRONG BUY')) ||
+      (activeFilter === 'hold' && v === 'HOLD') ||
+      (activeFilter === 'sell' && (v === 'SELL' || v === 'STRONG SELL'));
+    return matchQ && matchF;
+  });
+
+  filtered.sort((a,b) => {
+    if(sort === 'upside_desc') return (b.dcf_upside||0)   - (a.dcf_upside||0);
+    if(sort === 'upside_asc')  return (a.dcf_upside||0)   - (b.dcf_upside||0);
+    if(sort === 'date_desc')   return new Date(b.last_updated) - new Date(a.last_updated);
+    if(sort === 'runs_desc')   return (b.total_runs||0)   - (a.total_runs||0);
+    return a.ticker.localeCompare(b.ticker);
+  });
+
+  const grid = document.getElementById('tickerGrid');
+  if(!filtered.length){
+    grid.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">No results</div><div class="empty-sub">Try adjusting your search or filter.</div></div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(t => tickerCardHTML(t)).join('');
+}
+
+function tickerCardHTML(t){
+  const dcfColor    = upsideColor(t.dcf_upside);
+  const growthColor = upsideColor(t.growth_upside);
+  const blended     = (t.dcf_iv && t.growth_iv) ? ((+t.dcf_iv + +t.growth_iv)/2) : (t.dcf_iv || t.growth_iv);
+
+  return `
+  <div class="ticker-card" id="card-${t.ticker}">
+    <div class="ticker-header" onclick="toggleRuns('${t.ticker}')">
+
+      <div class="th-identity">
+        <div class="th-ticker">${t.ticker}</div>
+        <div class="th-company" title="${t.company_name||''}">${t.company_name||'—'}</div>
+        <div class="th-exchange">${t.exchange||''} &nbsp;·&nbsp; ${t.currency_unit||''}</div>
+      </div>
+
+      <div class="th-col">
+        <div class="th-col-label">Market Price</div>
+        <div class="th-col-value">${fmt(t.latest_price)}</div>
+        <div class="th-col-sub">as of ${fmtDate(t.last_updated)}</div>
+      </div>
+
+      <div class="th-col">
+        <div class="th-col-label">DCF Fair Value</div>
+        <div class="th-col-value" style="color:var(--green)">${t.dcf_iv ? fmt(t.dcf_iv) : '—'}</div>
+        <div class="th-col-sub" style="color:${dcfColor}">
+          ${t.dcf_upside != null ? (t.dcf_upside>=0?'+':'')+fmt(t.dcf_upside)+'% upside' : 'Not run'}
+        </div>
+      </div>
+
+      <div class="th-col">
+        <div class="th-col-label">Growth Fair Value</div>
+        <div class="th-col-value" style="color:var(--amber)">${t.growth_iv ? fmt(t.growth_iv) : '—'}</div>
+        <div class="th-col-sub" style="color:${growthColor}">
+          ${t.growth_upside != null ? (t.growth_upside>=0?'+':'')+fmt(t.growth_upside)+'% upside' : 'Not run'}
+        </div>
+      </div>
+
+      <div class="th-col">
+        <div class="th-col-label">Blended IV</div>
+        <div class="th-col-value" style="color:var(--text-bright)">${blended ? fmt(blended) : '—'}</div>
+        <div class="th-col-sub">${t.dcf_verdict ? '<span class="verdict-badge '+verdictClass(t.dcf_verdict)+'">'+t.dcf_verdict+'</span>' : ''}</div>
+      </div>
+
+      <div style="text-align:center">
+        <span class="run-count">${t.total_runs} run${t.total_runs!=1?'s':''}</span>
+      </div>
+
+      <div class="expand-icon" id="icon-${t.ticker}">▾</div>
+    </div>
+
+    <div class="runs-panel" id="runs-${t.ticker}">
+      <div class="runs-loading" id="runs-loading-${t.ticker}">Loading runs…</div>
+      <div id="runs-content-${t.ticker}"></div>
+    </div>
+  </div>`;
+}
+
+// ── Toggle expand / collapse ─────────────────────────────
+async function toggleRuns(ticker){
+  const panel   = document.getElementById('runs-' + ticker);
+  const icon    = document.getElementById('icon-' + ticker);
+  const card    = document.getElementById('card-' + ticker);
+  const content = document.getElementById('runs-content-' + ticker);
+  const loading = document.getElementById('runs-loading-' + ticker);
+
+  const isOpen = panel.classList.contains('open');
+  if(isOpen){
+    panel.classList.remove('open');
+    card.classList.remove('expanded');
+    icon.style.transform = 'rotate(0deg)';
+    return;
+  }
+
+  panel.classList.add('open');
+  card.classList.add('expanded');
+  icon.style.transform = 'rotate(180deg)';
+
+  // Only fetch if not already loaded
+  if(content.dataset.loaded) return;
+
+  loading.style.display = 'block';
+  content.innerHTML = '';
+
+  try {
+    const resp = await fetch(apiBase() + '/api/valuations/' + ticker + '/runs');
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const runs = await resp.json();
+    loading.style.display = 'none';
+    content.innerHTML = runsTableHTML(runs, ticker);
+    content.dataset.loaded = '1';
+  } catch(e) {
+    loading.textContent = '✗ Failed to load runs: ' + e.message;
+    loading.style.color = 'var(--red)';
+    loading.style.animation = 'none';
+  }
+}
+
+function runsTableHTML(runs, ticker){
+  if(!runs.length) return '<div style="padding:20px;text-align:center;color:var(--text-dim);font-size:12px">No runs found.</div>';
+
+  // Group by input_id (each run may appear twice if both DCF+Growth)
+  // The /runs endpoint already joins them into one row per input_id
+  const rows = runs.map(r => {
+    const dcfUp  = r.dcf_upside  != null ? ((r.dcf_upside>=0?'+':'')+fmt(r.dcf_upside)+'%') : null;
+    const grwUp  = r.growth_upside!= null ? ((r.growth_upside>=0?'+':'')+fmt(r.growth_upside)+'%') : null;
+    const dcfCol = upsideColor(r.dcf_upside);
+    const grwCol = upsideColor(r.growth_upside);
+
+    return `
+    <tr>
+      <td>
+        <div class="date-cell">
+          <div class="date-main">${fmtDate(r.generated_at)}</div>
+          <div class="date-sub">${fmtDateTime(r.generated_at).split(' ').slice(1).join(' ')}</div>
+          ${r.created_by ? '<div class="by-badge">by '+r.created_by+'</div>' : ''}
+        </div>
+      </td>
+      <td>${fmt(r.stock_price)}</td>
+      <td>
+        <div class="iv-cell">
+          <div class="iv-value" style="color:var(--green)">${r.dcf_iv ? fmt(r.dcf_iv) : '<span class="na">—</span>'}</div>
+          ${dcfUp ? '<div class="iv-upside" style="color:'+dcfCol+'">'+dcfUp+'</div>' : ''}
+          ${r.dcf_verdict ? '<div style="margin-top:3px"><span class="verdict-badge '+verdictClass(r.dcf_verdict)+'">'+r.dcf_verdict+'</span></div>' : ''}
+        </div>
+      </td>
+      <td>
+        <div class="iv-cell">
+          <div class="iv-value" style="color:var(--amber)">${r.growth_iv ? fmt(r.growth_iv) : '<span class="na">—</span>'}</div>
+          ${grwUp ? '<div class="iv-upside" style="color:'+grwCol+'">'+grwUp+'</div>' : ''}
+          ${r.growth_verdict ? '<div style="margin-top:3px"><span class="verdict-badge '+verdictClass(r.growth_verdict)+'">'+r.growth_verdict+'</span></div>' : ''}
+        </div>
+      </td>
+      <td>
+        <div class="blended-cell" style="color:${r.blended_iv ? upsideColor(((r.blended_iv - r.stock_price)/r.stock_price)*100) : 'var(--text-dim)'}">
+          ${r.blended_iv ? fmt(r.blended_iv) : '—'}
+        </div>
+      </td>
+      <td>
+        <div class="iv-cell">
+          <div style="color:var(--amber);font-size:11px">${r.dcf_mos20 ? fmt(r.dcf_mos20) : '—'}</div>
+          <div style="color:var(--text-dim);font-size:10px">DCF MOS 20%</div>
+          <div style="color:var(--amber);font-size:11px;margin-top:2px">${r.growth_mos20 ? fmt(r.growth_mos20) : '—'}</div>
+          <div style="color:var(--text-dim);font-size:10px">Growth MOS 20%</div>
+        </div>
+      </td>
+      <td>
+        <div class="action-cell">
+          <button class="btn btn-ghost btn-sm" onclick="openDetail(${r.input_id},'${ticker}',event)" title="View full details">View</button>
+          <button class="btn btn-ghost btn-sm" onclick="openCalculator()" title="Open calculator">Calc</button>
+          <button class="btn btn-red btn-sm" onclick="askDelete(${r.input_id},'${ticker}',event)">Del</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <table class="runs-table">
+    <thead>
+      <tr>
+        <th>Generated Date</th>
+        <th style="text-align:right">Price</th>
+        <th style="text-align:right">DCF Fair Value</th>
+        <th style="text-align:right">Growth Fair Value</th>
+        <th style="text-align:right">Blended IV</th>
+        <th style="text-align:right">MOS Buy Price</th>
+        <th style="text-align:right">Actions</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// ── Delete ───────────────────────────────────────────────
+function askDelete(inputId, ticker, e){
+  e.stopPropagation();
+  pendingDeleteId     = inputId;
+  pendingDeleteTicker = ticker;
+  document.getElementById('confirmMsg').textContent =
+    'Delete run #' + inputId + ' for ' + ticker + '? This removes all calculations and comments for this run. This cannot be undone.';
+  document.getElementById('confirmOverlay').style.display = 'flex';
+}
+
+function closeConfirm(){
+  document.getElementById('confirmOverlay').style.display = 'none';
+  pendingDeleteId = null;
+  pendingDeleteTicker = null;
+}
+
+async function confirmDelete(){
+  if(!pendingDeleteId) return;
+  closeConfirm();
+  setStatus('status-loading', '⟳ Deleting run #' + pendingDeleteId + '…');
+  try {
+    const resp = await fetch(apiBase() + '/api/valuations/' + pendingDeleteId, {method:'DELETE'});
+    if(!resp.ok && resp.status !== 204) throw new Error('HTTP ' + resp.status);
+    setStatus('status-ok', '✓ Deleted run #' + pendingDeleteId);
+    // Invalidate the runs cache for this ticker so it reloads
+    const content = document.getElementById('runs-content-' + pendingDeleteTicker);
+    if(content) delete content.dataset.loaded;
+    // Reload everything
+    await loadAll();
+  } catch(e) {
+    setStatus('status-err', '✗ Delete failed: ' + e.message);
+  }
+}
+
+// ── Detail Modal ─────────────────────────────────────────
+function switchModalTab(name, btn){
+  document.querySelectorAll('.modal-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.modal-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('mpane-' + name).classList.add('active');
+}
+
+function closeDetail(){
+  document.getElementById('detailOverlay').style.display = 'none';
+}
+function closeDetailIfBg(e){
+  if(e.target === document.getElementById('detailOverlay')) closeDetail();
+}
+
+function pct(n){ return n == null ? '—' : (Number(n) >= 0 ? '+' : '') + Number(n).toFixed(2) + '%'; }
+function fmtN(n, d=2){ return n == null ? '—' : Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function decPct(n){ return n == null ? '—' : (Number(n)*100).toFixed(2)+'%'; }
+
+async function openDetail(inputId, ticker, e){
+  e.stopPropagation();
+  const overlay = document.getElementById('detailOverlay');
+  const loading = document.getElementById('detailLoading');
+  const content = document.getElementById('detailContent');
+  overlay.style.display = 'flex';
+  loading.style.display = 'block';
+  content.style.display = 'none';
+  // Reset to summary tab
+  document.querySelectorAll('.modal-tab').forEach((b,i) => b.classList.toggle('active', i===0));
+  document.querySelectorAll('.modal-pane').forEach((p,i) => p.classList.toggle('active', i===0));
+
+  try {
+    const resp = await fetch(apiBase() + '/api/valuations/detail/' + inputId);
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    renderDetail(data, ticker);
+  } catch(err) {
+    loading.textContent = '✗ Failed to load: ' + err.message;
+    loading.style.color = 'var(--red)';
+    loading.style.animation = 'none';
+  }
+}
+
+function renderDetail(data, ticker){
+  const inp  = data.input        || {};
+  const cals = data.calculations || [];
+  const coms = data.comments     || [];
+  const dcf  = cals.find(c => c.calc_type === 'DCF')    || {};
+  const grw  = cals.find(c => c.calc_type === 'GROWTH') || {};
+  const blended = (dcf.intrinsic_value && grw.intrinsic_value)
+    ? ((+dcf.intrinsic_value + +grw.intrinsic_value) / 2) : (dcf.intrinsic_value || grw.intrinsic_value || 0);
+
+  document.getElementById('detailTitle').innerHTML =
+    '<span>' + (inp.ticker||ticker) + '</span> &nbsp; ' + (inp.company_name||'');
+  document.getElementById('detailSubtitle').textContent =
+    'Run #' + inp.id + ' · ' + fmtDateTime(inp.generated_at) +
+    (inp.created_by ? ' · by ' + inp.created_by : '') +
+    ' · ' + (inp.currency_unit||'');
+
+  // ── SUMMARY PANE ──
+  const dcfUp  = dcf.upside_pct  != null ? ((+dcf.upside_pct>=0?'+':'')+fmtN(dcf.upside_pct)+'%') : null;
+  const grwUp  = grw.upside_pct  != null ? ((+grw.upside_pct>=0?'+':'')+fmtN(grw.upside_pct)+'%') : null;
+  const blUp   = blended && inp.stock_price ? (((blended-inp.stock_price)/inp.stock_price)*100) : null;
+
+  document.getElementById('mpane-summary').innerHTML = `
+    <div class="modal-hero">
+      <div class="hero-big hl-green">
+        <div class="hero-big-label">DCF Fair Value</div>
+        <div class="hero-big-value" style="color:var(--green)">${fmtN(dcf.intrinsic_value)}</div>
+        <div class="hero-big-sub">${dcfUp ? dcfUp+' upside' : 'Not calculated'}</div>
+        ${dcf.verdict ? '<div style="margin-top:8px"><span class="verdict-badge '+verdictClass(dcf.verdict)+'">'+dcf.verdict+'</span></div>' : ''}
+      </div>
+      <div class="hero-big hl-amber">
+        <div class="hero-big-label">Growth Fair Value</div>
+        <div class="hero-big-value" style="color:var(--amber)">${fmtN(grw.intrinsic_value)}</div>
+        <div class="hero-big-sub">${grwUp ? grwUp+' upside' : 'Not calculated'}</div>
+        ${grw.verdict ? '<div style="margin-top:8px"><span class="verdict-badge '+verdictClass(grw.verdict)+'">'+grw.verdict+'</span></div>' : ''}
+      </div>
+      <div class="hero-big hl-blue">
+        <div class="hero-big-label">Blended IV</div>
+        <div class="hero-big-value" style="color:var(--blue)">${fmtN(blended||null)}</div>
+        <div class="hero-big-sub" style="color:${upsideColor(blUp)}">${blUp!=null?(blUp>=0?'+':'')+blUp.toFixed(2)+'% vs price':'—'}</div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">Key Metrics at Time of Run</div>
+      <div class="detail-grid">
+        <div class="detail-card"><div class="detail-card-label">Market Price</div><div class="detail-card-value">${fmtN(inp.stock_price)}</div><div class="detail-card-sub">${inp.currency_unit||''}</div></div>
+        <div class="detail-card"><div class="detail-card-label">Shares Outstanding</div><div class="detail-card-value">${fmtN(inp.shares_outstanding)}</div><div class="detail-card-sub">millions</div></div>
+        <div class="detail-card"><div class="detail-card-label">Net Debt</div><div class="detail-card-value">${fmtN(inp.net_debt)}</div><div class="detail-card-sub">negative = net cash</div></div>
+        <div class="detail-card"><div class="detail-card-label">Base Revenue</div><div class="detail-card-value">${fmtN(inp.base_revenue)}</div><div class="detail-card-sub">FY${inp.base_year||''}</div></div>
+        <div class="detail-card"><div class="detail-card-label">WACC</div><div class="detail-card-value amber">${decPct(inp.wacc)}</div></div>
+        <div class="detail-card"><div class="detail-card-label">Terminal Growth</div><div class="detail-card-value">${decPct(inp.terminal_growth)}</div></div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">Margin of Safety — Both Models</div>
+      <table class="mos-mini">
+        <tr><th>MOS</th><th>DCF Buy ≤</th><th>Growth Buy ≤</th><th>Blended Buy ≤</th><th>Signal</th></tr>
+        ${[0.10,0.15,0.20,0.25,0.30,0.35,0.40].map(m => {
+          const db = dcf.intrinsic_value ? fmtN(dcf.intrinsic_value*(1-m)) : '—';
+          const gb = grw.intrinsic_value ? fmtN(grw.intrinsic_value*(1-m)) : '—';
+          const bl = blended ? fmtN(blended*(1-m)) : '—';
+          const buyOk = blended && inp.stock_price && blended*(1-m) >= inp.stock_price;
+          return '<tr>'
+            + '<td>'+(m*100).toFixed(0)+'%</td>'
+            + '<td style="color:var(--green)">'+db+'</td>'
+            + '<td style="color:var(--amber)">'+gb+'</td>'
+            + '<td style="color:var(--blue)">'+bl+'</td>'
+            + '<td style="font-size:11px;color:'+(buyOk?'var(--green)':'var(--red)')+'">'+
+              (buyOk ? '✅ BUY ZONE' : '❌ Above MOS') + '</td>'
+            + '</tr>';
+        }).join('')}
+      </table>
+    </div>`;
+
+  // ── INPUTS PANE ──
+  const rows = (label, val) => `<tr><td>${label}</td><td>${val}</td></tr>`;
+  document.getElementById('mpane-inputs').innerHTML = `
+    <div class="detail-section">
+      <div class="detail-section-title">Market Data Inputs</div>
+      <table class="input-table">
+        ${rows('Ticker',             inp.ticker||'—')}
+        ${rows('Company',            inp.company_name||'—')}
+        ${rows('Exchange',           inp.exchange||'—')}
+        ${rows('Currency Unit',      inp.currency_unit||'—')}
+        ${rows('Stock Price',        fmtN(inp.stock_price))}
+        ${rows('Shares Outstanding (mm)', fmtN(inp.shares_outstanding))}
+        ${rows('Net Debt',           fmtN(inp.net_debt))}
+        ${rows('Base Revenue',       fmtN(inp.base_revenue))}
+        ${rows('Base Fiscal Year',   inp.base_year||'—')}
+      </table>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">DCF Assumptions</div>
+      <table class="input-table">
+        ${rows('WACC',               decPct(inp.wacc))}
+        ${rows('Revenue Growth Yr 1–2', decPct(inp.growth_yr1_2))}
+        ${rows('Revenue Growth Yr 3–5', decPct(inp.growth_yr3_5))}
+        ${rows('Terminal Growth Rate',  decPct(inp.terminal_growth))}
+        ${rows('EBITDA Margin Yr 1',    decPct(inp.ebitda_margin_yr1))}
+        ${rows('EBITDA Margin Yr 5',    decPct(inp.ebitda_margin_yr5))}
+        ${rows('D&A % of Revenue',      decPct(inp.dna_pct_rev))}
+        ${rows('CapEx % of Revenue',    decPct(inp.capex_pct_rev))}
+        ${rows('NWC % of Revenue',      decPct(inp.nwc_pct_rev))}
+        ${rows('Tax Rate',              decPct(inp.tax_rate))}
+      </table>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Growth Model Assumptions</div>
+      <table class="input-table">
+        ${rows('Base EPS (TTM)',      fmtN(inp.base_eps))}
+        ${rows('EPS Growth Yr 1–5',  decPct(inp.eps_growth_yr1_5))}
+        ${rows('EPS Growth Yr 6–10', decPct(inp.eps_growth_yr6_10))}
+        ${rows('Terminal P/E',       fmtN(inp.terminal_pe,1)+'x')}
+        ${rows('Required Return',    decPct(inp.required_return))}
+        ${rows('Dividend / Share',   fmtN(inp.dividend_per_share))}
+      </table>
+    </div>
+    ${inp.notes ? '<div class="detail-section"><div class="detail-section-title">Notes</div><div style="font-size:12px;color:var(--text-dim);line-height:1.7;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px">'+inp.notes+'</div></div>' : ''}`;
+
+  // ── DCF PANE ──
+  document.getElementById('mpane-dcf').innerHTML = dcf.intrinsic_value ? `
+    <div class="detail-section">
+      <div class="detail-section-title">DCF Valuation Output</div>
+      <div class="detail-grid">
+        <div class="detail-card"><div class="detail-card-label">PV of FCF (Yrs 1–5)</div><div class="detail-card-value">${fmtN(dcf.pv_fcf_sum)}</div></div>
+        <div class="detail-card"><div class="detail-card-label">PV of Terminal Value</div><div class="detail-card-value">${fmtN(dcf.pv_terminal_value)}</div></div>
+        <div class="detail-card"><div class="detail-card-label">Enterprise Value</div><div class="detail-card-value">${fmtN(dcf.enterprise_value)}</div></div>
+        <div class="detail-card"><div class="detail-card-label">Equity Value</div><div class="detail-card-value">${fmtN(dcf.equity_value)}</div></div>
+        <div class="detail-card"><div class="detail-card-label">DCF Intrinsic Value</div><div class="detail-card-value green">${fmtN(dcf.intrinsic_value)}</div><div class="detail-card-sub">per share</div></div>
+        <div class="detail-card"><div class="detail-card-label">Upside / Downside</div><div class="detail-card-value" style="color:${upsideColor(dcf.upside_pct)}">${dcf.upside_pct!=null?(+dcf.upside_pct>=0?'+':'')+fmtN(dcf.upside_pct)+'%':'—'}</div></div>
+        <div class="detail-card"><div class="detail-card-label">MOS 20% Buy Price</div><div class="detail-card-value amber">${fmtN(dcf.mos_20_price)}</div></div>
+        <div class="detail-card"><div class="detail-card-label">MOS 30% Buy Price</div><div class="detail-card-value amber">${fmtN(dcf.mos_30_price)}</div></div>
+        <div class="detail-card"><div class="detail-card-label">Verdict</div><div class="detail-card-value" style="font-size:14px">${dcf.verdict ? '<span class="verdict-badge '+verdictClass(dcf.verdict)+'">'+dcf.verdict+'</span>' : '—'}</div></div>
+      </div>
+    </div>` : '<div style="padding:40px;text-align:center;color:var(--text-dim)">DCF model was not run for this date.</div>';
+
+  // ── GROWTH PANE ──
+  document.getElementById('mpane-growth').innerHTML = grw.intrinsic_value ? `
+    <div class="detail-section">
+      <div class="detail-section-title">Growth Model Output</div>
+      <div class="detail-grid">
+        <div class="detail-card"><div class="detail-card-label">EPS at Year 10</div><div class="detail-card-value amber">${fmtN(grw.eps_year10)}</div></div>
+        <div class="detail-card"><div class="detail-card-label">Terminal Price (Yr 10)</div><div class="detail-card-value">${fmtN(grw.terminal_price)}</div></div>
+        <div class="detail-card"><div class="detail-card-label">PV of Terminal Price</div><div class="detail-card-value green">${fmtN(grw.pv_terminal_price)}</div></div>
+        <div class="detail-card"><div class="detail-card-label">PV of All Dividends</div><div class="detail-card-value blue">${fmtN(grw.pv_dividends_sum)}</div></div>
+        <div class="detail-card"><div class="detail-card-label">Growth Fair Value</div><div class="detail-card-value amber">${fmtN(grw.intrinsic_value)}</div><div class="detail-card-sub">per share</div></div>
+        <div class="detail-card"><div class="detail-card-label">Upside / Downside</div><div class="detail-card-value" style="color:${upsideColor(grw.upside_pct)}">${grw.upside_pct!=null?(+grw.upside_pct>=0?'+':'')+fmtN(grw.upside_pct)+'%':'—'}</div></div>
+        <div class="detail-card"><div class="detail-card-label">MOS 20% Buy Price</div><div class="detail-card-value amber">${fmtN(grw.mos_20_price)}</div></div>
+        <div class="detail-card"><div class="detail-card-label">MOS 30% Buy Price</div><div class="detail-card-value amber">${fmtN(grw.mos_30_price)}</div></div>
+        <div class="detail-card"><div class="detail-card-label">Verdict</div><div class="detail-card-value" style="font-size:14px">${grw.verdict ? '<span class="verdict-badge '+verdictClass(grw.verdict)+'">'+grw.verdict+'</span>' : '—'}</div></div>
+      </div>
+    </div>` : '<div style="padding:40px;text-align:center;color:var(--text-dim)">Growth model was not run for this date.</div>';
+
+  // ── COMMENTS PANE ──
+  const ctMap = {
+    RATIONALE:'ct-rat', RISK_HIGH:'ct-rh', RISK_MED:'ct-rm', RISK_LOW:'ct-rl',
+    STRESS_BULL:'ct-sb', STRESS_BEAR:'ct-sb2', BALANCE:'ct-bal', ANALYST:'ct-ana'
+  };
+  const ctLabel = {
+    RATIONALE:'Rationale', RISK_HIGH:'High Risk', RISK_MED:'Medium Risk', RISK_LOW:'Low Risk',
+    STRESS_BULL:'Bull Case', STRESS_BEAR:'Bear Case', BALANCE:'Balance Sheet', ANALYST:'Analyst'
+  };
+  // Group by type
+  const grouped = {};
+  coms.forEach(c => { if(!grouped[c.comment_type]) grouped[c.comment_type]=[]; grouped[c.comment_type].push(c); });
+  const sections = Object.entries(grouped).map(([type, items]) => `
+    <div class="detail-section">
+      <div class="detail-section-title">${ctLabel[type]||type}</div>
+      ${items.map(c => `
+        <div class="comment-item">
+          <span class="comment-type-badge ${ctMap[type]||'ct-ana'}">${ctLabel[type]||type}</span>
+          ${c.title ? '<div class="comment-title">'+c.title+'</div>' : ''}
+          <div class="comment-body">${c.body}</div>
+        </div>`).join('')}
+    </div>`).join('');
+  document.getElementById('mpane-comments').innerHTML = coms.length
+    ? sections
+    : '<div style="padding:40px;text-align:center;color:var(--text-dim)">No comments saved for this run.</div>';
+
+  // ── HISTORY PANE (historical revenue data) ──
+  let histHTML = '<div style="padding:40px;text-align:center;color:var(--text-dim)">No historical data saved.</div>';
+  if(inp.historical_data){
+    try {
+      const hist = typeof inp.historical_data === 'string'
+        ? JSON.parse(inp.historical_data) : inp.historical_data;
+      if(hist && hist.length){
+        const histRows = hist.map((h,i) => {
+          const prev = i>0 ? hist[i-1].rev : null;
+          const gr   = prev ? ((h.rev-prev)/prev*100).toFixed(1)+'%' : '—';
+          return '<tr>'
+            + '<td>'+h.yr+'</td>'
+            + '<td>'+fmtN(h.rev)+'</td>'
+            + '<td style="color:'+(prev&&h.rev>prev?'var(--green)':'var(--text-dim)')+'">'+gr+'</td>'
+            + '<td>'+(h.margin!=null?(h.margin*100).toFixed(1)+'%':'—')+'</td>'
+            + '</tr>';
+        }).join('');
+        histHTML = `
+          <div class="detail-section">
+            <div class="detail-section-title">Historical Revenue & Margin</div>
+            <table class="hist-table">
+              <tr><th>Year</th><th style="text-align:right">Revenue</th><th style="text-align:right">YoY Growth</th><th style="text-align:right">EBITDA Margin</th></tr>
+              ${histRows}
+            </table>
+          </div>`;
+      }
+    } catch(e) { histHTML = '<div style="padding:20px;color:var(--red);font-size:12px">Error parsing historical data: '+e.message+'</div>'; }
+  }
+  document.getElementById('mpane-history').innerHTML = histHTML;
+}
+
+// ── Open calculator ──────────────────────────────────────
+function openCalculator(){
+  // Try the configured path first
+  const path = (document.getElementById('calcPath').value || 'ticker_calculator.html').trim();
+  // If path starts with http it's absolute — open directly
+  if(path.startsWith('http')){
+    window.open(path, '_blank');
+    return;
+  }
+  // Build URL relative to current page location
+  const base = window.location.href.replace(/[^/]*$/, '');
+  window.open(base + path, '_blank');
+}
+
+// ── Init ─────────────────────────────────────────────────
+window.onload = () => {
+  // Auto-detect calculator path — same folder as dashboard
+  const base = window.location.href.replace(/[^/]*$/, '');
+  document.getElementById('calcPath').value = base + 'ticker_calculator.html';
+  loadAll();
+};
+</script>
+</body>
+</html>
