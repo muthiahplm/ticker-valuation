@@ -105,6 +105,9 @@ h1 span{color:var(--green)}
 .runs-panel.open{display:block}
 
 .runs-loading{padding:20px;text-align:center;color:var(--blue);font-size:12px;animation:pulse 1s infinite}
+.runs-footer{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border);background:var(--bg);gap:12px}
+.runs-del-btn{opacity:.6;transition:opacity .2s,background .2s}
+.runs-del-btn:hover{opacity:1}
 
 .runs-table{width:100%;border-collapse:collapse}
 .runs-table th{font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);padding:10px 16px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg)}
@@ -219,6 +222,25 @@ h1 span{color:var(--green)}
 .mos-mini td:first-child{text-align:left;color:var(--text-dim)}
 .mos-mini tr:last-child td{border-bottom:none}
 
+/* COUNTRY TABS */
+.country-tabs{display:flex;gap:0;margin-bottom:0;border-bottom:2px solid var(--border)}
+.country-tab{font-family:var(--fh);font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;padding:12px 28px;cursor:pointer;border:none;background:transparent;color:var(--text-dim);border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;display:flex;align-items:center;gap:8px}
+.country-tab:hover{color:var(--text);background:rgba(255,255,255,.02)}
+.country-tab.ct-active-in{color:var(--amber);border-bottom-color:var(--amber)}
+.country-tab.ct-active-us{color:var(--blue);border-bottom-color:var(--blue)}
+.country-tab.ct-active-all{color:var(--green);border-bottom-color:var(--green)}
+.country-tab.ct-active-other{color:var(--text);border-bottom-color:var(--text-dim)}
+.country-flag{font-size:18px;line-height:1}
+.country-count{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:2px}
+.ct-active-in .country-count{background:var(--amber-dim);color:var(--amber);border-color:rgba(255,184,48,.3)}
+.ct-active-us .country-count{background:var(--blue-dim);color:var(--blue);border-color:rgba(91,224,255,.3)}
+.ct-active-all .country-count{background:var(--green-dim);color:var(--green);border-color:rgba(45,255,122,.3)}
+.country-pane{display:none;padding-top:20px}
+.country-pane.cp-active{display:block}
+.country-header-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--panel);border:1px solid var(--border);border-radius:6px;margin-bottom:14px}
+.country-header-flag{font-size:24px}
+.country-header-title{font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase}
+.country-header-sub{font-size:11px;color:var(--text-dim);margin-left:auto}
 /* DELETE CONFIRM */
 .confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:center;justify-content:center}
 .confirm-box{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:28px 32px;max-width:400px;width:90%}
@@ -288,10 +310,10 @@ h1 span{color:var(--green)}
 <!-- TOOLBAR -->
 <div class="toolbar" id="toolbar" style="display:none">
   <input class="search-box" id="searchBox" placeholder="Search ticker or company…" oninput="renderCards()" />
-  <button class="filter-btn active" data-filter="all"    onclick="setFilter('all',this)">All</button>
-  <button class="filter-btn"        data-filter="buy"    onclick="setFilter('buy',this)">Buy / Strong Buy</button>
-  <button class="filter-btn"        data-filter="hold"   onclick="setFilter('hold',this)">Hold</button>
-  <button class="filter-btn"        data-filter="sell"   onclick="setFilter('sell',this)">Sell</button>
+  <button class="filter-btn active" data-filter="all"  onclick="setFilter('all',this)">All</button>
+  <button class="filter-btn" data-filter="buy"         onclick="setFilter('buy',this)">Buy / Strong Buy</button>
+  <button class="filter-btn" data-filter="hold"        onclick="setFilter('hold',this)">Hold</button>
+  <button class="filter-btn" data-filter="sell"        onclick="setFilter('sell',this)">Sell</button>
   <select class="sort-select" id="sortSelect" onchange="renderCards()">
     <option value="ticker">Sort: Ticker A–Z</option>
     <option value="upside_desc">Sort: Highest Upside</option>
@@ -301,8 +323,62 @@ h1 span{color:var(--green)}
   </select>
 </div>
 
-<!-- TICKER CARDS -->
-<div class="ticker-grid" id="tickerGrid">
+<!-- COUNTRY TABS -->
+<div id="countryTabsWrap" style="display:none">
+  <div class="country-tabs">
+    <button class="country-tab ct-active-all" id="ctab-all"   onclick="switchCountry('all')">
+      <span class="country-flag">🌍</span> All
+      <span class="country-count" id="cnt-all">0</span>
+    </button>
+    <button class="country-tab" id="ctab-in" onclick="switchCountry('in')">
+      <span class="country-flag">🇮🇳</span> India
+      <span class="country-count" id="cnt-in">0</span>
+    </button>
+    <button class="country-tab" id="ctab-us" onclick="switchCountry('us')">
+      <span class="country-flag">🇺🇸</span> United States
+      <span class="country-count" id="cnt-us">0</span>
+    </button>
+    <button class="country-tab" id="ctab-other" onclick="switchCountry('other')">
+      <span class="country-flag">🌐</span> Other
+      <span class="country-count" id="cnt-other">0</span>
+    </button>
+  </div>
+
+  <!-- ALL PANE -->
+  <div class="country-pane cp-active" id="cpane-all">
+    <div class="ticker-grid" id="tickerGrid-all"></div>
+  </div>
+  <!-- INDIA PANE -->
+  <div class="country-pane" id="cpane-in">
+    <div class="country-header-bar">
+      <span class="country-header-flag">🇮🇳</span>
+      <span class="country-header-title" style="color:var(--amber)">Indian Market — NSE / BSE</span>
+      <span class="country-header-sub" id="in-summary"></span>
+    </div>
+    <div class="ticker-grid" id="tickerGrid-in"></div>
+  </div>
+  <!-- US PANE -->
+  <div class="country-pane" id="cpane-us">
+    <div class="country-header-bar">
+      <span class="country-header-flag">🇺🇸</span>
+      <span class="country-header-title" style="color:var(--blue)">US Market — NYSE / NASDAQ</span>
+      <span class="country-header-sub" id="us-summary"></span>
+    </div>
+    <div class="ticker-grid" id="tickerGrid-us"></div>
+  </div>
+  <!-- OTHER PANE -->
+  <div class="country-pane" id="cpane-other">
+    <div class="country-header-bar">
+      <span class="country-header-flag">🌐</span>
+      <span class="country-header-title" style="color:var(--text)">Other Markets</span>
+      <span class="country-header-sub" id="other-summary"></span>
+    </div>
+    <div class="ticker-grid" id="tickerGrid-other"></div>
+  </div>
+</div>
+
+<!-- EMPTY STATE (before load) -->
+<div id="emptyState">
   <div class="empty">
     <div class="empty-icon">📊</div>
     <div class="empty-title">No tickers loaded yet</div>
@@ -352,7 +428,7 @@ h1 span{color:var(--green)}
 <!-- DELETE CONFIRM MODAL -->
 <div class="confirm-overlay" id="confirmOverlay" style="display:none">
   <div class="confirm-box">
-    <div class="confirm-title">Delete Valuation Run?</div>
+    <div class="confirm-title" id="confirmTitle">Delete Valuation?</div>
     <div class="confirm-msg" id="confirmMsg">This will permanently delete the run and all its calculations and comments.</div>
     <div class="confirm-btns">
       <button class="btn btn-ghost" onclick="closeConfirm()">Cancel</button>
@@ -364,10 +440,36 @@ h1 span{color:var(--green)}
 </div><!-- /wrap -->
 
 <script>
-let allTickers = [];
+let allTickers   = [];
 let activeFilter = 'all';
-let pendingDeleteId = null;
+let activeCountry= 'all';  // 'all' | 'in' | 'us' | 'other'
+let pendingDeleteId     = null;
 let pendingDeleteTicker = null;
+
+// ── Detect country from exchange / currency ──
+function detectCountry(t){
+  const ex  = (t.exchange     ||'').toLowerCase();
+  const cur = (t.currency_unit||'').toLowerCase();
+  if(ex.includes('nse') || ex.includes('bse') || ex.includes('bombay') || ex.includes('national stock')
+     || cur.includes('inr') || cur.includes('crore')) return 'in';
+  if(ex.includes('nasdaq') || ex.includes('nyse') || ex.includes('amex') || ex.includes('cboe')
+     || cur.includes('usd') || cur.includes('$ mm') || cur.includes('usd mm')) return 'us';
+  return 'other';
+}
+
+// ── Switch country tab ──
+function switchCountry(c){
+  activeCountry = c;
+  // Update tab active classes
+  ['all','in','us','other'].forEach(id => {
+    const btn = document.getElementById('ctab-'+id);
+    btn.className = 'country-tab' + (id===c ? ' ct-active-'+id : '');
+  });
+  // Show correct pane
+  document.querySelectorAll('.country-pane').forEach(p => p.classList.remove('cp-active'));
+  document.getElementById('cpane-'+c).classList.add('cp-active');
+  renderCards();
+}
 
 // ── Helpers ──────────────────────────────────────────────
 function apiBase(){ return (document.getElementById('apiUrl').value||'http://localhost:8000').replace(/\/$/,''); }
@@ -425,17 +527,28 @@ async function loadAll(){
 
     document.getElementById('connStatus').textContent = '✓ Connected — ' + allTickers.length + ' ticker(s) loaded';
     document.getElementById('connStatus').style.color = 'var(--green)';
-    document.getElementById('statsRow').style.display = 'grid';
-    document.getElementById('toolbar').style.display  = 'flex';
+    document.getElementById('statsRow').style.display        = 'grid';
+    document.getElementById('toolbar').style.display         = 'flex';
+    document.getElementById('emptyState').style.display      = 'none';
+    document.getElementById('statusBar').style.display       = 'block';
+    if(allTickers.length > 0){
+      document.getElementById('countryTabsWrap').style.display = 'block';
+    } else {
+      document.getElementById('emptyState').style.display = 'block';
+      document.getElementById('emptyState').innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">No valuations saved yet</div><div class="empty-sub">Open the calculator, run AI Autofill, calculate, then click 💾 Save Valuation.</div></div>';
+    }
 
     updateStats();
     renderCards();
     setStatus('status-ok', '✓ Loaded ' + allTickers.length + ' ticker(s) from database');
     setTimeout(()=>{ document.getElementById('statusBar').style.display='none'; }, 3000);
   } catch(e) {
-    setStatus('status-err', '✗ ' + e.message);
+    setStatus('status-err', '✗ Could not connect: ' + e.message + ' — check API URL and make sure uvicorn is running.');
     document.getElementById('connStatus').textContent = '✗ Not connected';
     document.getElementById('connStatus').style.color = 'var(--red)';
+    // Keep empty state visible on error
+    document.getElementById('emptyState').style.display      = 'block';
+    document.getElementById('countryTabsWrap').style.display = 'none';
   }
 }
 
@@ -451,50 +564,85 @@ function updateStats(){
   document.getElementById('statBuy').textContent     = strongBuy;
   document.getElementById('statUnder').textContent   = underval;
   document.getElementById('statOver').textContent    = overval;
+
+  // Country counts
+  const inCount    = allTickers.filter(t => detectCountry(t)==='in').length;
+  const usCount    = allTickers.filter(t => detectCountry(t)==='us').length;
+  const otherCount = allTickers.filter(t => detectCountry(t)==='other').length;
+  document.getElementById('cnt-all').textContent   = allTickers.length;
+  document.getElementById('cnt-in').textContent    = inCount;
+  document.getElementById('cnt-us').textContent    = usCount;
+  document.getElementById('cnt-other').textContent = otherCount;
+
+  // Country summary lines
+  const inBuy = allTickers.filter(t=>detectCountry(t)==='in'&&(t.dcf_upside||0)>0).length;
+  const usBuy = allTickers.filter(t=>detectCountry(t)==='us'&&(t.dcf_upside||0)>0).length;
+  document.getElementById('in-summary').textContent    = inCount+' stocks · '+inBuy+' undervalued';
+  document.getElementById('us-summary').textContent    = usCount+' stocks · '+usBuy+' undervalued';
+  document.getElementById('other-summary').textContent = otherCount+' stocks';
+
+  // Show/hide country tabs area
+  document.getElementById('countryTabsWrap').style.display = allTickers.length ? 'block' : 'none';
+  document.getElementById('emptyState').style.display      = allTickers.length ? 'none'  : 'block';
 }
 
 // ── Render ticker cards ──────────────────────────────────
-function renderCards(){
-  const q      = document.getElementById('searchBox').value.toLowerCase();
-  const sort   = document.getElementById('sortSelect').value;
-
-  let filtered = allTickers.filter(t => {
+function applyFilterSort(list){
+  const q    = (document.getElementById('searchBox').value||'').toLowerCase();
+  const sort = document.getElementById('sortSelect').value;
+  let out = (list||[]).filter(t => {
     const matchQ = !q || t.ticker.toLowerCase().includes(q)
                       || (t.company_name||'').toLowerCase().includes(q);
     const v = (t.dcf_verdict||'').toUpperCase();
-    const matchF =
-      activeFilter === 'all'  ||
-      (activeFilter === 'buy'  && (v === 'BUY' || v === 'STRONG BUY')) ||
-      (activeFilter === 'hold' && v === 'HOLD') ||
-      (activeFilter === 'sell' && (v === 'SELL' || v === 'STRONG SELL'));
+    const matchF = activeFilter==='all'
+      || (activeFilter==='buy'  && (v==='BUY'||v==='STRONG BUY'))
+      || (activeFilter==='hold' && v==='HOLD')
+      || (activeFilter==='sell' && (v==='SELL'||v==='STRONG SELL'));
     return matchQ && matchF;
   });
-
-  filtered.sort((a,b) => {
-    if(sort === 'upside_desc') return (b.dcf_upside||0)   - (a.dcf_upside||0);
-    if(sort === 'upside_asc')  return (a.dcf_upside||0)   - (b.dcf_upside||0);
-    if(sort === 'date_desc')   return new Date(b.last_updated) - new Date(a.last_updated);
-    if(sort === 'runs_desc')   return (b.total_runs||0)   - (a.total_runs||0);
+  out.sort((a,b)=>{
+    if(sort==='upside_desc') return (b.dcf_upside||0)-(a.dcf_upside||0);
+    if(sort==='upside_asc')  return (a.dcf_upside||0)-(b.dcf_upside||0);
+    if(sort==='date_desc')   return new Date(b.last_updated)-new Date(a.last_updated);
+    if(sort==='runs_desc')   return (b.total_runs||0)-(a.total_runs||0);
     return a.ticker.localeCompare(b.ticker);
   });
-
-  const grid = document.getElementById('tickerGrid');
-  if(!filtered.length){
-    grid.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">No results</div><div class="empty-sub">Try adjusting your search or filter.</div></div>`;
-    return;
-  }
-
-  grid.innerHTML = filtered.map(t => tickerCardHTML(t)).join('');
+  return out;
 }
 
-function tickerCardHTML(t){
+function renderToGrid(gridId, list){
+  const grid = document.getElementById(gridId);
+  if(!grid) return;
+  if(!list || !list.length){
+    grid.innerHTML = '<div class="empty" style="padding:40px 20px;text-align:center">'
+      + '<div style="font-size:32px;opacity:.4;margin-bottom:10px">🔍</div>'
+      + '<div style="font-family:var(--fh);font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px">No results</div>'
+      + '<div style="font-size:12px;color:var(--text-dim)">Try adjusting your search or filter.</div></div>';
+    return;
+  }
+  grid.innerHTML = list.map(t => tickerCardHTML(t, gridId.replace('tickerGrid-',''))).join('');
+}
+
+function renderCards(){
+  if(!allTickers.length) return;
+  const inList    = allTickers.filter(t => detectCountry(t)==='in');
+  const usList    = allTickers.filter(t => detectCountry(t)==='us');
+  const otherList = allTickers.filter(t => detectCountry(t)==='other');
+  renderToGrid('tickerGrid-all',   applyFilterSort(allTickers));
+  renderToGrid('tickerGrid-in',    applyFilterSort(inList));
+  renderToGrid('tickerGrid-us',    applyFilterSort(usList));
+  renderToGrid('tickerGrid-other', applyFilterSort(otherList));
+}
+
+function tickerCardHTML(t, gridId){
   const dcfColor    = upsideColor(t.dcf_upside);
   const growthColor = upsideColor(t.growth_upside);
   const blended     = (t.dcf_iv && t.growth_iv) ? ((+t.dcf_iv + +t.growth_iv)/2) : (t.dcf_iv || t.growth_iv);
+  const uid = t.ticker + '__' + (gridId||'all');  // unique per grid
 
   return `
-  <div class="ticker-card" id="card-${t.ticker}">
-    <div class="ticker-header" onclick="toggleRuns('${t.ticker}')">
+  <div class="ticker-card" id="card-${uid}">
+    <div class="ticker-header" onclick="toggleRuns('${t.ticker}','${uid}')">
 
       <div class="th-identity">
         <div class="th-ticker">${t.ticker}</div>
@@ -534,23 +682,32 @@ function tickerCardHTML(t){
         <span class="run-count">${t.total_runs} run${t.total_runs!=1?'s':''}</span>
       </div>
 
-      <div class="expand-icon" id="icon-${t.ticker}">▾</div>
+      <div class="expand-icon" id="icon-${uid}">▾</div>
     </div>
 
-    <div class="runs-panel" id="runs-${t.ticker}">
-      <div class="runs-loading" id="runs-loading-${t.ticker}">Loading runs…</div>
-      <div id="runs-content-${t.ticker}"></div>
+    <div class="runs-panel" id="runs-${uid}">
+      <div class="runs-loading" id="runs-loading-${uid}">Loading runs…</div>
+      <div id="runs-content-${uid}"></div>
+      <div class="runs-footer" onclick="event.stopPropagation()">
+        <span style="font-size:11px;color:var(--text-dim)">Danger zone</span>
+        <button class="btn btn-red btn-sm runs-del-btn" onclick="askDeleteTicker('${t.ticker}',event)">
+          🗑 &nbsp;Delete all runs for ${t.ticker}
+        </button>
+      </div>
     </div>
   </div>`;
 }
 
 // ── Toggle expand / collapse ─────────────────────────────
-async function toggleRuns(ticker){
-  const panel   = document.getElementById('runs-' + ticker);
-  const icon    = document.getElementById('icon-' + ticker);
-  const card    = document.getElementById('card-' + ticker);
-  const content = document.getElementById('runs-content-' + ticker);
-  const loading = document.getElementById('runs-loading-' + ticker);
+async function toggleRuns(ticker, uid){
+  // uid is unique per grid (e.g. TSLA__us), ticker is the raw symbol
+  const panel   = document.getElementById('runs-'         + uid);
+  const icon    = document.getElementById('icon-'         + uid);
+  const card    = document.getElementById('card-'         + uid);
+  const content = document.getElementById('runs-content-' + uid);
+  const loading = document.getElementById('runs-loading-' + uid);
+
+  if(!panel) return;
 
   const isOpen = panel.classList.contains('open');
   if(isOpen){
@@ -564,7 +721,7 @@ async function toggleRuns(ticker){
   card.classList.add('expanded');
   icon.style.transform = 'rotate(180deg)';
 
-  // Only fetch if not already loaded
+  // Only fetch if not already loaded for this uid
   if(content.dataset.loaded) return;
 
   loading.style.display = 'block';
@@ -636,7 +793,6 @@ function runsTableHTML(runs, ticker){
         <div class="action-cell">
           <button class="btn btn-ghost btn-sm" onclick="openDetail(${r.input_id},'${ticker}',event)" title="View full details">View</button>
           <button class="btn btn-ghost btn-sm" onclick="openCalculator()" title="Open calculator">Calc</button>
-          <button class="btn btn-red btn-sm" onclick="askDelete(${r.input_id},'${ticker}',event)">Del</button>
         </div>
       </td>
     </tr>`;
@@ -660,33 +816,35 @@ function runsTableHTML(runs, ticker){
 }
 
 // ── Delete ───────────────────────────────────────────────
-function askDelete(inputId, ticker, e){
+let pendingDeleteMode = 'ticker'; // 'ticker' only now
+
+function askDeleteTicker(ticker, e){
   e.stopPropagation();
-  pendingDeleteId     = inputId;
   pendingDeleteTicker = ticker;
-  document.getElementById('confirmMsg').textContent =
-    'Delete run #' + inputId + ' for ' + ticker + '? This removes all calculations and comments for this run. This cannot be undone.';
+  pendingDeleteId     = null;
+  pendingDeleteMode   = 'ticker';
+  document.getElementById('confirmTitle').textContent = 'Delete ' + ticker + '?';
+  document.getElementById('confirmMsg').textContent   =
+    'Delete ALL saved valuations for ' + ticker + '? This permanently removes every run, calculation, and comment for this ticker. This cannot be undone.';
   document.getElementById('confirmOverlay').style.display = 'flex';
 }
 
 function closeConfirm(){
   document.getElementById('confirmOverlay').style.display = 'none';
-  pendingDeleteId = null;
+  pendingDeleteId     = null;
   pendingDeleteTicker = null;
 }
 
 async function confirmDelete(){
-  if(!pendingDeleteId) return;
+  if(!pendingDeleteTicker) return;
   closeConfirm();
-  setStatus('status-loading', '⟳ Deleting run #' + pendingDeleteId + '…');
+  setStatus('status-loading', '⟳ Deleting all runs for ' + pendingDeleteTicker + '…');
   try {
-    const resp = await fetch(apiBase() + '/api/valuations/' + pendingDeleteId, {method:'DELETE'});
-    if(!resp.ok && resp.status !== 204) throw new Error('HTTP ' + resp.status);
-    setStatus('status-ok', '✓ Deleted run #' + pendingDeleteId);
-    // Invalidate the runs cache for this ticker so it reloads
-    const content = document.getElementById('runs-content-' + pendingDeleteTicker);
-    if(content) delete content.dataset.loaded;
-    // Reload everything
+    // Single API call — deletes all runs for this ticker in one go
+    const delResp = await fetch(apiBase() + '/api/valuations/ticker/' + pendingDeleteTicker, {method:'DELETE'});
+    if(!delResp.ok) throw new Error('HTTP ' + delResp.status);
+    const result = await delResp.json();
+    setStatus('status-ok', '✓ ' + result.message);
     await loadAll();
   } catch(e) {
     setStatus('status-err', '✗ Delete failed: ' + e.message);
@@ -968,8 +1126,35 @@ window.onload = () => {
   // Auto-detect calculator path — same folder as dashboard
   const base = window.location.href.replace(/[^/]*$/, '');
   document.getElementById('calcPath').value = base + 'ticker_calculator.html';
-  loadAll();
+
+  // Show empty state cleanly — don't show error before user clicks connect
+  document.getElementById('emptyState').style.display      = 'block';
+  document.getElementById('countryTabsWrap').style.display = 'none';
+  document.getElementById('statsRow').style.display        = 'none';
+  document.getElementById('toolbar').style.display         = 'none';
+  document.getElementById('statusBar').style.display       = 'none';
+
+  // Auto-connect silently — only show error if it actually fails
+  autoConnect();
 };
+
+async function autoConnect(){
+  try {
+    const resp = await fetch(apiBase() + '/api/health', {signal: AbortSignal.timeout(4000)});
+    if(resp.ok) {
+      // API is reachable — load data
+      document.getElementById('connStatus').textContent = 'Connecting…';
+      await loadAll();
+    } else {
+      document.getElementById('connStatus').textContent = 'API not reachable — click Connect';
+      document.getElementById('connStatus').style.color = 'var(--text-dim)';
+    }
+  } catch(e){
+    // Silently fail — don't show error, just show "not connected" hint
+    document.getElementById('connStatus').textContent = 'Not connected — click Connect';
+    document.getElementById('connStatus').style.color = 'var(--text-dim)';
+  }
+}
 </script>
 </body>
 </html>

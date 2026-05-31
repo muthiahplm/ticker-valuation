@@ -369,6 +369,31 @@ def get_detail(input_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+
+@app.delete(
+    "/api/valuations/ticker/{ticker}",
+    status_code=status.HTTP_200_OK,
+    summary="Delete ALL runs for a ticker (cascades to calcs + comments)",
+)
+def delete_ticker(ticker: str):
+    ticker = ticker.strip().upper()
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT COUNT(*) FROM dbo.TickerInput WHERE ticker = ?", ticker
+            )
+            count = cur.fetchval()
+            if not count:
+                raise HTTPException(status_code=404, detail=f"No valuations found for {ticker}")
+            cur.execute(
+                "DELETE FROM dbo.TickerInput WHERE ticker = ?", ticker
+            )
+            conn.commit()
+        return {"ticker": ticker, "deleted_runs": count, "message": f"Deleted all {count} run(s) for {ticker}"}
+    except pyodbc.Error as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.delete(
     "/api/valuations/{input_id}",
     status_code=status.HTTP_204_NO_CONTENT,
