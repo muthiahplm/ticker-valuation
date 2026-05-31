@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DCF Valuation Calculator</title>
+<title>PLM Ticker Watcher — Calculator</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -211,7 +211,7 @@ footer{margin-top:48px;padding:24px 0;border-top:1px solid var(--border);display
 
 <!-- HEADER -->
 <header>
-  <div class="eyebrow">DCF Valuation Engine</div>
+  <div class="eyebrow">PLM Ticker Watcher</div>
   <h1><span class="ticker-display" id="headerTicker">—</span> &nbsp;<span id="headerCompany" style="color:var(--text-bright);font-size:0.7em;font-style:italic"></span></h1>
   <div class="header-meta">
     <span class="tag" id="headerExchange">NSE / BSE</span>
@@ -553,14 +553,43 @@ let currentCurrency = DEFAULT.currency;
 // ── INIT ──
 window.onload = () => {
   setGeneratedTimestamp();
-  document.getElementById('tickerInput').value  = DEFAULT.ticker;
-  document.getElementById('companyInput').value = DEFAULT.company;
-  document.getElementById('currencyInput').value = DEFAULT.currency;
-  applyHeader();
-  renderHistTable();
-  renderBsSection();
-  renderRiskTable();
-  calculate();
+
+  // ── Check URL params — e.g. ?ticker=TSLA&autofill=1 (from dashboard Recalc) ──
+  const params   = new URLSearchParams(window.location.search);
+  const urlTicker   = (params.get('ticker') || '').trim().toUpperCase();
+  const autoFill    = params.get('autofill') === '1';
+
+  if(urlTicker){
+    // Pre-fill ticker from URL, clear company so autofill doesn't get stale data
+    document.getElementById('tickerInput').value  = urlTicker;
+    document.getElementById('companyInput').value = '';
+    document.getElementById('currencyInput').value = '';
+    // Show a banner so user knows what's happening
+    const aiStatus = document.getElementById('aiStatus');
+    if(aiStatus){
+      aiStatus.className = 'ai-status ai-loading';
+      aiStatus.style.display = 'block';
+      aiStatus.textContent = '↻  Recalculating ' + urlTicker + ' as of today — fetching live data…';
+    }
+    renderHistTable(); renderBsSection(); renderRiskTable();
+    if(autoFill){
+      // Small delay so the page renders first
+      setTimeout(() => autofillWithAI(), 400);
+    } else {
+      applyHeader();
+      calculate();
+    }
+  } else {
+    // Normal load — show defaults
+    document.getElementById('tickerInput').value   = DEFAULT.ticker;
+    document.getElementById('companyInput').value  = DEFAULT.company;
+    document.getElementById('currencyInput').value = DEFAULT.currency;
+    applyHeader();
+    renderHistTable();
+    renderBsSection();
+    renderRiskTable();
+    calculate();
+  }
 };
 
 function setGeneratedTimestamp(){

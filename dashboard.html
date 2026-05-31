@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ticker Valuation Dashboard</title>
+<title>PLM Ticker Watcher</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -255,8 +255,8 @@ h1 span{color:var(--green)}
 <!-- HEADER -->
 <header>
   <div>
-    <div class="eyebrow">Valuation Dashboard</div>
-    <h1>Ticker <span>Portfolio</span></h1>
+    <div class="eyebrow">PLM Ticker Watcher</div>
+    <h1>PLM <span>Ticker Watcher</span></h1>
   </div>
   <div class="header-right">
     <button class="btn btn-green" onclick="loadAll()">↻ &nbsp;Refresh</button>
@@ -792,7 +792,7 @@ function runsTableHTML(runs, ticker){
       <td>
         <div class="action-cell">
           <button class="btn btn-ghost btn-sm" onclick="openDetail(${r.input_id},'${ticker}',event)" title="View full details">View</button>
-          <button class="btn btn-ghost btn-sm" onclick="openCalculator()" title="Open calculator">Calc</button>
+          <button class="btn btn-ghost btn-sm" onclick="openCalculator('${ticker}')" title="Recalculate as of today">↻ Recalc</button>
         </div>
       </td>
     </tr>`;
@@ -1108,17 +1108,11 @@ function renderDetail(data, ticker){
 }
 
 // ── Open calculator ──────────────────────────────────────
-function openCalculator(){
-  // Try the configured path first
+function openCalculator(ticker){
   const path = (document.getElementById('calcPath').value || 'ticker_calculator.html').trim();
-  // If path starts with http it's absolute — open directly
-  if(path.startsWith('http')){
-    window.open(path, '_blank');
-    return;
-  }
-  // Build URL relative to current page location
-  const base = window.location.href.replace(/[^/]*$/, '');
-  window.open(base + path, '_blank');
+  const base = path.startsWith('http') ? '' : window.location.href.replace(/[^/]*$/, '');
+  const url  = (base + path) + (ticker ? '?ticker=' + encodeURIComponent(ticker) + '&autofill=1' : '');
+  window.open(url, '_blank');
 }
 
 // ── Init ─────────────────────────────────────────────────
