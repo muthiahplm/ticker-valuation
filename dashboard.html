@@ -139,6 +139,48 @@ h1 span{color:var(--green)}
 .empty-title{font-family:var(--fh);font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px}
 .empty-sub{font-size:12px;line-height:1.6}
 
+/* COMPARE MODAL */
+.cmp-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto}
+.cmp-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;width:100%;max-width:1100px;margin:auto;animation:slideIn .2s ease}
+.cmp-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10;border-radius:10px 10px 0 0}
+.cmp-title{font-family:var(--fd);font-size:20px;color:var(--text-bright)}
+.cmp-title span{color:var(--green)}
+.cmp-body{padding:24px}
+.cmp-loading{padding:60px;text-align:center;color:var(--blue);animation:pulse 1s infinite}
+
+/* COMPARE COLS */
+.cmp-cols{display:grid;grid-template-columns:200px 1fr 1fr;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px}
+.cmp-col-head{font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;padding:12px 16px;background:var(--panel2);border-bottom:1px solid var(--border);text-align:center}
+.cmp-col-head.h-left{text-align:left;color:var(--text-dim);background:var(--bg2)}
+.cmp-col-head.h-a{color:var(--green)}
+.cmp-col-head.h-b{color:var(--blue)}
+.cmp-row{display:contents}
+.cmp-row:hover .cmp-cell{background:rgba(45,255,122,.025)}
+.cmp-row.changed .cmp-label{color:var(--amber)}
+.cmp-row.changed .cmp-cell-a,.cmp-row.changed .cmp-cell-b{background:rgba(255,184,48,.05)}
+.cmp-label{padding:9px 16px;font-size:11px;color:var(--text-dim);border-bottom:1px solid var(--border2);background:var(--bg2);display:flex;align-items:center;gap:6px}
+.cmp-cell-a,.cmp-cell-b{padding:9px 16px;font-size:12px;font-weight:500;color:var(--text-bright);border-bottom:1px solid var(--border2);text-align:right}
+.cmp-cell-a{border-left:1px solid var(--border2)}
+.cmp-changed-badge{font-size:9px;background:var(--amber-dim);color:var(--amber);border:1px solid rgba(255,184,48,.3);border-radius:2px;padding:1px 5px;font-family:var(--fh);font-weight:700;letter-spacing:.05em;margin-left:auto}
+.cmp-val-up{color:var(--green)}
+.cmp-val-dn{color:var(--red)}
+.cmp-val-same{color:var(--text-dim)}
+.cmp-section-title{font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--green);padding:10px 0 8px;display:flex;align-items:center;gap:10px}
+.cmp-section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.cmp-comment-row{display:grid;grid-template-columns:200px 1fr 1fr;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:8px}
+.cmp-comment-label{padding:10px 14px;background:var(--bg2);font-size:10px;color:var(--text-dim);font-family:var(--fh);font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.cmp-comment-a,.cmp-comment-b{padding:10px 14px;font-size:12px;color:var(--text-dim);line-height:1.6;border-left:1px solid var(--border2)}
+.cmp-comment-b{border-left:1px solid var(--border)}
+.cmp-select-bar{display:flex;gap:10px;align-items:center;padding:12px 16px;background:var(--panel);border:1px solid var(--border);border-radius:6px;margin-bottom:20px;flex-wrap:wrap}
+
+/* Run checkbox for compare */
+.cmp-checkbox{width:16px;height:16px;accent-color:var(--green);cursor:pointer}
+.cmp-sel-label{font-size:11px;color:var(--text-dim);margin-left:4px}
+.compare-bar{display:none;position:sticky;bottom:12px;left:0;right:0;z-index:50;padding:0 20px}
+.compare-bar-inner{background:var(--panel2);border:1px solid var(--green);border-radius:8px;padding:10px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(45,255,122,.2)}
+.compare-bar-text{font-size:12px;color:var(--text-bright);flex:1}
+.compare-bar-text strong{color:var(--green)}
+
 /* DETAIL MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
 .modal-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;width:100%;max-width:900px;margin:auto;position:relative;animation:slideIn .2s ease}
@@ -383,6 +425,34 @@ h1 span{color:var(--green)}
     <div class="empty-icon">📊</div>
     <div class="empty-title">No tickers loaded yet</div>
     <div class="empty-sub">Enter your API URL above and click Connect,<br>or add valuations from the calculator.</div>
+  </div>
+</div>
+
+<!-- COMPARE MODAL -->
+<div class="cmp-overlay" id="cmpOverlay" style="display:none" onclick="closeCmpIfBg(event)">
+  <div class="cmp-box" id="cmpBox">
+    <div class="cmp-header">
+      <div>
+        <div class="cmp-title">Compare <span id="cmpTicker">—</span></div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:3px" id="cmpSubtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeCmp()">✕</button>
+    </div>
+    <div class="cmp-body">
+      <div class="cmp-loading" id="cmpLoading">Loading comparison data…</div>
+      <div id="cmpContent" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- COMPARE STICKY BAR (appears when 2 runs selected) -->
+<div class="compare-bar" id="compareBar">
+  <div class="compare-bar-inner">
+    <div class="compare-bar-text">
+      <strong id="cmpBarText">2 runs selected</strong> — ready to compare
+    </div>
+    <button class="btn btn-green" onclick="runCompare()">⇄ &nbsp;Compare Selected</button>
+    <button class="btn btn-ghost btn-sm" onclick="clearCompareSelection()">Clear</button>
   </div>
 </div>
 
@@ -754,6 +824,9 @@ function runsTableHTML(runs, ticker){
 
     return `
     <tr>
+      <td style="width:36px;text-align:center;padding:0 8px">
+        <input type="checkbox" class="cmp-checkbox" data-id="${r.input_id}" data-ticker="${ticker}" data-date="${fmtDate(r.generated_at)}" onchange="onRunCheckbox(this)" />
+      </td>
       <td>
         <div class="date-cell">
           <div class="date-main">${fmtDate(r.generated_at)}</div>
@@ -799,9 +872,13 @@ function runsTableHTML(runs, ticker){
   }).join('');
 
   return `
+  <div style="font-size:11px;color:var(--text-dim);padding:8px 16px 4px;background:var(--bg)">
+    ☑ Select any <strong style="color:var(--green)">2 runs</strong> to compare inputs, outputs and narrative changes
+  </div>
   <table class="runs-table">
     <thead>
       <tr>
+        <th style="width:36px"></th>
         <th>Generated Date</th>
         <th style="text-align:right">Price</th>
         <th style="text-align:right">DCF Fair Value</th>
@@ -1105,6 +1182,237 @@ function renderDetail(data, ticker){
     } catch(e) { histHTML = '<div style="padding:20px;color:var(--red);font-size:12px">Error parsing historical data: '+e.message+'</div>'; }
   }
   document.getElementById('mpane-history').innerHTML = histHTML;
+}
+
+// ── Compare ──────────────────────────────────────────────
+let selectedRuns = [];   // [{id, ticker, date}]
+
+function onRunCheckbox(cb){
+  const id     = +cb.dataset.id;
+  const ticker = cb.dataset.ticker;
+  const date   = cb.dataset.date;
+
+  if(cb.checked){
+    if(selectedRuns.length >= 2){
+      cb.checked = false;
+      alert('Select exactly 2 runs to compare. Uncheck one first.');
+      return;
+    }
+    selectedRuns.push({id, ticker, date});
+  } else {
+    selectedRuns = selectedRuns.filter(r => r.id !== id);
+  }
+  updateCompareBar();
+}
+
+function updateCompareBar(){
+  const bar = document.getElementById('compareBar');
+  if(selectedRuns.length === 2){
+    bar.style.display = 'block';
+    document.getElementById('cmpBarText').innerHTML =
+      '<strong>' + selectedRuns[0].date + '</strong> vs <strong>' + selectedRuns[1].date + '</strong>';
+  } else if(selectedRuns.length === 1){
+    bar.style.display = 'block';
+    document.getElementById('cmpBarText').innerHTML =
+      'Selected <strong>' + selectedRuns[0].date + '</strong> — pick one more run to compare';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function clearCompareSelection(){
+  selectedRuns = [];
+  document.querySelectorAll('.cmp-checkbox').forEach(cb => cb.checked = false);
+  document.getElementById('compareBar').style.display = 'none';
+}
+
+function closeCmp(){
+  document.getElementById('cmpOverlay').style.display = 'none';
+}
+function closeCmpIfBg(e){
+  if(e.target === document.getElementById('cmpOverlay')) closeCmp();
+}
+
+async function runCompare(){
+  if(selectedRuns.length !== 2){
+    alert('Select exactly 2 runs first.');
+    return;
+  }
+  const [runA, runB] = selectedRuns;
+  const overlay = document.getElementById('cmpOverlay');
+  const loading = document.getElementById('cmpLoading');
+  const content = document.getElementById('cmpContent');
+
+  overlay.style.display = 'flex';
+  loading.style.display = 'block';
+  content.style.display = 'none';
+
+  document.getElementById('cmpTicker').textContent = runA.ticker;
+  document.getElementById('cmpSubtitle').textContent =
+    'Comparing ' + runA.date + ' (Run #' + runA.id + ')  vs  ' + runB.date + ' (Run #' + runB.id + ')';
+
+  try {
+    const [dA, dB] = await Promise.all([
+      fetch(apiBase() + '/api/valuations/detail/' + runA.id).then(r => r.json()),
+      fetch(apiBase() + '/api/valuations/detail/' + runB.id).then(r => r.json()),
+    ]);
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    content.innerHTML = buildCompareHTML(dA, dB, runA, runB);
+  } catch(err){
+    loading.textContent = '✗ Failed: ' + err.message;
+    loading.style.color = 'var(--red)';
+    loading.style.animation = 'none';
+  }
+}
+
+function buildCompareHTML(dA, dB, runA, runB){
+  const iA = dA.input || {}, iB = dB.input || {};
+  const calA = dA.calculations || [], calB = dB.calculations || [];
+  const comA = dA.comments || [],     comB = dB.comments || [];
+  const dcfA = calA.find(c=>c.calc_type==='DCF')    || {};
+  const dcfB = calB.find(c=>c.calc_type==='DCF')    || {};
+  const grwA = calA.find(c=>c.calc_type==='GROWTH') || {};
+  const grwB = calB.find(c=>c.calc_type==='GROWTH') || {};
+
+  // Helper: single comparison row
+  function cmpRow(label, vA, vB, fmt_fn, threshold){
+    const a = vA != null ? vA : null;
+    const b = vB != null ? vB : null;
+    const fA = a != null ? fmt_fn(a) : '—';
+    const fB = b != null ? fmt_fn(b) : '—';
+    const changed = a != null && b != null && Math.abs(Number(a) - Number(b)) > (threshold||0.0001);
+    const diff = (a != null && b != null) ? Number(b) - Number(a) : null;
+    const diffStr = diff != null
+      ? '<span class="' + (diff>0?'cmp-val-up':diff<0?'cmp-val-dn':'cmp-val-same') + '">'
+        + (diff>0?'+':'') + fmt_fn(diff) + '</span>' : '';
+    return '<div class="cmp-row' + (changed?' changed':'') + '">'
+      + '<div class="cmp-label">' + label + (changed?'<span class="cmp-changed-badge">CHANGED</span>':'') + '</div>'
+      + '<div class="cmp-cell-a">' + fA + '</div>'
+      + '<div class="cmp-cell-b">' + fB + (diffStr?' <span style="font-size:10px;margin-left:4px">'+diffStr+'</span>':'') + '</div>'
+      + '</div>';
+  }
+
+  const n2 = v => fmtN(v, 2);
+  const p4 = v => (Number(v)*100).toFixed(2)+'%';
+  const n1 = v => fmtN(v, 1);
+  const plain = v => String(v);
+
+  // Build column headers
+  const header = '<div class="cmp-cols">'
+    + '<div class="cmp-col-head h-left">Field</div>'
+    + '<div class="cmp-col-head h-a">📅 ' + runA.date + ' (Run #' + runA.id + ')</div>'
+    + '<div class="cmp-col-head h-b">📅 ' + runB.date + ' (Run #' + runB.id + ')</div>';
+
+  // ── SECTION builder ──
+  function section(title, rows){
+    return '<div class="cmp-section-title">' + title + '</div>'
+      + '<div class="cmp-cols">'
+      + '<div class="cmp-col-head h-left">Field</div>'
+      + '<div class="cmp-col-head h-a">📅 ' + runA.date + '</div>'
+      + '<div class="cmp-col-head h-b">📅 ' + runB.date + '</div>'
+      + rows + '</div>';
+  }
+
+  const mktRows =
+    cmpRow('Stock Price',         iA.stock_price,        iB.stock_price,        n2, 0.01) +
+    cmpRow('Shares Out (mm)',     iA.shares_outstanding, iB.shares_outstanding, n2, 0.1) +
+    cmpRow('Net Debt',            iA.net_debt,           iB.net_debt,           n2, 1) +
+    cmpRow('Base Revenue',        iA.base_revenue,       iB.base_revenue,       n2, 1) +
+    cmpRow('Base Year',           iA.base_year,          iB.base_year,          plain, 0);
+
+  const dcfAsmRows =
+    cmpRow('WACC',                iA.wacc,               iB.wacc,               p4, 0.0001) +
+    cmpRow('Revenue Growth Yr1-2',iA.growth_yr1_2,       iB.growth_yr1_2,       p4, 0.0001) +
+    cmpRow('Revenue Growth Yr3-5',iA.growth_yr3_5,       iB.growth_yr3_5,       p4, 0.0001) +
+    cmpRow('Terminal Growth',     iA.terminal_growth,    iB.terminal_growth,    p4, 0.0001) +
+    cmpRow('EBITDA Margin Yr1',   iA.ebitda_margin_yr1,  iB.ebitda_margin_yr1,  p4, 0.0001) +
+    cmpRow('EBITDA Margin Yr5',   iA.ebitda_margin_yr5,  iB.ebitda_margin_yr5,  p4, 0.0001) +
+    cmpRow('D&A % Rev',           iA.dna_pct_rev,        iB.dna_pct_rev,        p4, 0.0001) +
+    cmpRow('CapEx % Rev',         iA.capex_pct_rev,      iB.capex_pct_rev,      p4, 0.0001) +
+    cmpRow('NWC % Rev',           iA.nwc_pct_rev,        iB.nwc_pct_rev,        p4, 0.0001) +
+    cmpRow('Tax Rate',            iA.tax_rate,           iB.tax_rate,           p4, 0.0001);
+
+  const grwAsmRows =
+    cmpRow('Base EPS',            iA.base_eps,           iB.base_eps,           n2, 0.01) +
+    cmpRow('EPS Growth Yr1-5',    iA.eps_growth_yr1_5,   iB.eps_growth_yr1_5,   p4, 0.0001) +
+    cmpRow('EPS Growth Yr6-10',   iA.eps_growth_yr6_10,  iB.eps_growth_yr6_10,  p4, 0.0001) +
+    cmpRow('Terminal P/E',        iA.terminal_pe,        iB.terminal_pe,        n1, 0.1) +
+    cmpRow('Required Return',     iA.required_return,    iB.required_return,    p4, 0.0001) +
+    cmpRow('Dividend/Share',      iA.dividend_per_share, iB.dividend_per_share, n2, 0.001);
+
+  const dcfOutRows =
+    cmpRow('DCF Intrinsic Value', dcfA.intrinsic_value,  dcfB.intrinsic_value,  n2, 0.01) +
+    cmpRow('DCF Upside %',        dcfA.upside_pct,       dcfB.upside_pct,       v=>(+v).toFixed(2)+'%', 0.1) +
+    cmpRow('Enterprise Value',    dcfA.enterprise_value, dcfB.enterprise_value, n2, 1) +
+    cmpRow('PV of FCF Sum',       dcfA.pv_fcf_sum,       dcfB.pv_fcf_sum,       n2, 1) +
+    cmpRow('PV Terminal Value',   dcfA.pv_terminal_value,dcfB.pv_terminal_value,n2, 1) +
+    cmpRow('MOS 20% Buy',         dcfA.mos_20_price,     dcfB.mos_20_price,     n2, 0.01) +
+    cmpRow('MOS 30% Buy',         dcfA.mos_30_price,     dcfB.mos_30_price,     n2, 0.01);
+
+  const grwOutRows =
+    cmpRow('Growth Fair Value',   grwA.intrinsic_value,  grwB.intrinsic_value,  n2, 0.01) +
+    cmpRow('Growth Upside %',     grwA.upside_pct,       grwB.upside_pct,       v=>(+v).toFixed(2)+'%', 0.1) +
+    cmpRow('EPS at Year 10',      grwA.eps_year10,       grwB.eps_year10,       n2, 0.01) +
+    cmpRow('Terminal Price',      grwA.terminal_price,   grwB.terminal_price,   n2, 0.01) +
+    cmpRow('MOS 20% Buy',         grwA.mos_20_price,     grwB.mos_20_price,     n2, 0.01);
+
+  // ── Narrative diff ──
+  const ctOrder = ['RATIONALE','RISK_HIGH','RISK_MED','RISK_LOW','STRESS_BULL','STRESS_BEAR','BALANCE'];
+  const ctLabel = {RATIONALE:'Rationale',RISK_HIGH:'Risk High',RISK_MED:'Risk Med',
+                   RISK_LOW:'Risk Low',STRESS_BULL:'Bull Case',STRESS_BEAR:'Bear Case',BALANCE:'Balance Sheet'};
+
+  function getComments(coms, type){ return coms.filter(c=>c.comment_type===type); }
+
+  let narrativeHTML = '';
+  ctOrder.forEach(type => {
+    const cA = getComments(comA, type);
+    const cB = getComments(comB, type);
+    if(!cA.length && !cB.length) return;
+    const maxLen = Math.max(cA.length, cB.length);
+    for(let i=0; i<maxLen; i++){
+      const tA = cA[i] ? (cA[i].title ? '<strong>'+cA[i].title+'</strong><br>' : '') + cA[i].body : '—';
+      const tB = cB[i] ? (cB[i].title ? '<strong>'+cB[i].title+'</strong><br>' : '') + cB[i].body : '—';
+      const changed = tA !== tB;
+      narrativeHTML += '<div class="cmp-comment-row' + (changed?' changed':'') + '">'
+        + '<div class="cmp-comment-label">' + ctLabel[type] + (i>0?' #'+(i+1):'') 
+        + (changed?'<br><span class="cmp-changed-badge" style="display:inline-block;margin-top:4px">CHANGED</span>':'') + '</div>'
+        + '<div class="cmp-comment-a">' + tA + '</div>'
+        + '<div class="cmp-comment-b">' + tB + '</div>'
+        + '</div>';
+    }
+  });
+
+  // ── Summary change count ──
+  const allSections = mktRows + dcfAsmRows + grwAsmRows + dcfOutRows + grwOutRows;
+  const changedCount = (allSections.match(/CHANGED/g)||[]).length;
+  const narrativeChanges = (narrativeHTML.match(/CHANGED/g)||[]).length;
+
+  const summaryBar = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px">'
+    + '<div class="stat-card" style="flex:1;min-width:140px"><div class="stat-label">Input Changes</div>'
+    + '<div class="stat-value" style="color:' + (changedCount?'var(--amber)':'var(--green)') + '">' + changedCount + '</div>'
+    + '<div class="stat-sub">fields differ between runs</div></div>'
+    + '<div class="stat-card" style="flex:1;min-width:140px"><div class="stat-label">Narrative Changes</div>'
+    + '<div class="stat-value" style="color:' + (narrativeChanges?'var(--amber)':'var(--green)') + '">' + narrativeChanges + '</div>'
+    + '<div class="stat-sub">risk/rationale items changed</div></div>'
+    + '<div class="stat-card" style="flex:1;min-width:140px"><div class="stat-label">DCF IV Change</div>'
+    + '<div class="stat-value" style="color:' + (dcfA.intrinsic_value&&dcfB.intrinsic_value ? upsideColor(((+dcfB.intrinsic_value - +dcfA.intrinsic_value)/+dcfA.intrinsic_value)*100) : 'var(--text-dim)') + '">'
+    + (dcfA.intrinsic_value&&dcfB.intrinsic_value ? ((+dcfB.intrinsic_value>+dcfA.intrinsic_value?'+':'')+(+dcfB.intrinsic_value - +dcfA.intrinsic_value).toFixed(2)) : '—') + '</div>'
+    + '<div class="stat-sub">' + runA.date + ' → ' + runB.date + '</div></div>'
+    + '<div class="stat-card" style="flex:1;min-width:140px"><div class="stat-label">Growth IV Change</div>'
+    + '<div class="stat-value" style="color:' + (grwA.intrinsic_value&&grwB.intrinsic_value ? upsideColor(((+grwB.intrinsic_value - +grwA.intrinsic_value)/+grwA.intrinsic_value)*100) : 'var(--text-dim)') + '">'
+    + (grwA.intrinsic_value&&grwB.intrinsic_value ? ((+grwB.intrinsic_value>+grwA.intrinsic_value?'+':'')+(+grwB.intrinsic_value - +grwA.intrinsic_value).toFixed(2)) : '—') + '</div>'
+    + '<div class="stat-sub">' + runA.date + ' → ' + runB.date + '</div></div>'
+    + '</div>';
+
+  return summaryBar
+    + section('📊 Market Data', mktRows)
+    + section('⚙ DCF Assumptions', dcfAsmRows)
+    + section('📈 Growth Model Assumptions', grwAsmRows)
+    + section('📊 DCF Outputs', dcfOutRows)
+    + section('📈 Growth Model Outputs', grwOutRows)
+    + '<div class="cmp-section-title">💬 Narrative & Comments Comparison</div>'
+    + (narrativeHTML || '<div style="padding:20px;text-align:center;color:var(--text-dim);font-size:12px">No comments saved for either run.</div>');
 }
 
 // ── Open calculator ──────────────────────────────────────
