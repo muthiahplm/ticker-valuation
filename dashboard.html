@@ -1137,8 +1137,72 @@ function renderDetail(data, ticker){
     STRESS_BULL:'Bull Case', STRESS_BEAR:'Bear Case', BALANCE:'Balance Sheet', ANALYST:'Analyst'
   };
   // Group by type
+  // Separate quarterly comments from regular ones
+  const qtrSummary  = coms.find(c  => c.comment_type==='ANALYST' && (c.title||'').startsWith('Quarterly Data —'));
+  const qtrRows     = coms.filter(c => c.comment_type==='ANALYST' && (c.title||'').startsWith('Quarter:'));
+  const qtrWarning  = coms.find(c  => c.comment_type==='ANALYST' && (c.title||'').startsWith('Assumption Validation'));
+  const regularComs = coms.filter(c => !(
+    (c.title||'').startsWith('Quarterly Data —') ||
+    (c.title||'').startsWith('Quarter:') ||
+    (c.title||'').startsWith('Assumption Validation')
+  ));
+
+  // Build quarterly section if we have data
+  let qtrSection = '';
+  if(qtrSummary || qtrRows.length){
+    const pipeToRows = body => (body||'').split(' | ').map(s=>s.trim()).filter(Boolean);
+    let qtrTableRows = qtrRows.map(q => {
+      const cells = {};
+      pipeToRows(q.body).forEach(s => {
+        const [k,...v] = s.split(':'); cells[k.trim()] = v.join(':').trim();
+      });
+      return '<tr>'
+        + '<td style="color:var(--text-dim);font-weight:500">' + (q.title||'').replace('Quarter: ','') + '</td>'
+        + '<td>' + (cells['Revenue']||'—') + '</td>'
+        + '<td style="color:' + (cells['Rev Growth YoY']&&cells['Rev Growth YoY'].startsWith('+')?'var(--green)':'var(--red)') + '">' + (cells['Rev Growth YoY']||'—') + '</td>'
+        + '<td>' + (cells['Gross Margin']||'—') + '</td>'
+        + '<td>' + (cells['EBITDA']||'—') + '</td>'
+        + '<td>' + (cells['EBITDA Margin']||'—') + '</td>'
+        + '<td style="color:' + (cells['EBITDA Growth YoY']&&cells['EBITDA Growth YoY'].startsWith('+')?'var(--green)':'var(--red)') + '">' + (cells['EBITDA Growth YoY']||'—') + '</td>'
+        + '</tr>';
+    }).join('');
+
+    // Summary row
+    let sumCells = {};
+    if(qtrSummary) pipeToRows(qtrSummary.body).forEach(s=>{ const [k,...v]=s.split(':'); sumCells[k.trim()]=v.join(':').trim(); });
+    const sumRow = '<tr style="background:var(--panel);font-weight:600">'
+      + '<td style="color:var(--text-bright)">5-Qtr Avg</td>'
+      + '<td>—</td>'
+      + '<td style="color:var(--green)">' + (sumCells['Avg Revenue Growth YoY']||'—') + '</td>'
+      + '<td>' + (sumCells['Avg Gross Margin']||'—') + '</td>'
+      + '<td>—</td>'
+      + '<td>' + (sumCells['Avg EBITDA Margin']||'—') + '</td>'
+      + '<td>' + (sumCells['Avg EBITDA Growth YoY']||'—') + '</td>'
+      + '</tr>';
+
+    qtrSection = '<div class="detail-section">'
+      + '<div class="detail-section-title">📊 Last 5 Quarters — Actual Performance</div>'
+      + (qtrSummary ? '<div style="font-size:11px;color:var(--text-dim);margin-bottom:8px">'
+          + 'Trend — Revenue: <strong style="color:var(--text)">' + (sumCells['Revenue Trend']||'—') + '</strong>'
+          + ' &nbsp;·&nbsp; Margin: <strong style="color:var(--text)">' + (sumCells['Margin Trend']||'—') + '</strong>'
+          + (sumCells['Note'] ? ' &nbsp;·&nbsp; <em>' + sumCells['Note'] + '</em>' : '') + '</div>' : '')
+      + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'
+      + '<tr style="background:var(--bg2)">'
+      + '<th style="font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)">Quarter</th>'
+      + '<th style="font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);padding:8px 12px;text-align:right;border-bottom:1px solid var(--border)">Revenue</th>'
+      + '<th style="font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);padding:8px 12px;text-align:right;border-bottom:1px solid var(--border)">Rev Growth</th>'
+      + '<th style="font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);padding:8px 12px;text-align:right;border-bottom:1px solid var(--border)">Gross Margin</th>'
+      + '<th style="font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);padding:8px 12px;text-align:right;border-bottom:1px solid var(--border)">EBITDA</th>'
+      + '<th style="font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);padding:8px 12px;text-align:right;border-bottom:1px solid var(--border)">EBITDA Margin</th>'
+      + '<th style="font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);padding:8px 12px;text-align:right;border-bottom:1px solid var(--border)">EBITDA Growth</th>'
+      + '</tr>' + qtrTableRows + sumRow + '</table></div>'
+      + (qtrWarning ? '<div style="background:var(--amber-dim);border:1px solid rgba(255,184,48,.3);border-radius:4px;padding:10px 14px;margin-top:10px;font-size:12px;color:var(--text)">'
+          + '⚠️ &nbsp;<strong>Assumption Warnings:</strong> ' + (qtrWarning.body||'') + '</div>' : '')
+      + '</div>';
+  }
+
   const grouped = {};
-  coms.forEach(c => { if(!grouped[c.comment_type]) grouped[c.comment_type]=[]; grouped[c.comment_type].push(c); });
+  regularComs.forEach(c => { if(!grouped[c.comment_type]) grouped[c.comment_type]=[]; grouped[c.comment_type].push(c); });
   const sections = Object.entries(grouped).map(([type, items]) => `
     <div class="detail-section">
       <div class="detail-section-title">${ctLabel[type]||type}</div>
@@ -1149,8 +1213,8 @@ function renderDetail(data, ticker){
           <div class="comment-body">${c.body}</div>
         </div>`).join('')}
     </div>`).join('');
-  document.getElementById('mpane-comments').innerHTML = coms.length
-    ? sections
+  document.getElementById('mpane-comments').innerHTML = (coms.length || qtrSection)
+    ? (qtrSection + sections)
     : '<div style="padding:40px;text-align:center;color:var(--text-dim)">No comments saved for this run.</div>';
 
   // ── HISTORY PANE (historical revenue data) ──
@@ -1417,10 +1481,30 @@ function buildCompareHTML(dA, dB, runA, runB){
 
 // ── Open calculator ──────────────────────────────────────
 function openCalculator(ticker){
-  const path = (document.getElementById('calcPath').value || 'ticker_calculator.html').trim();
-  const base = path.startsWith('http') ? '' : window.location.href.replace(/[^/]*$/, '');
-  const url  = (base + path) + (ticker ? '?ticker=' + encodeURIComponent(ticker) + '&autofill=1' : '');
-  window.open(url, '_blank');
+  // Build clean URL — calcPath may already be full http URL or just filename
+  let path    = (document.getElementById('calcPath').value || 'ticker_calculator.html').trim();
+  const apiBase = (document.getElementById('apiUrl').value || 'http://localhost:8000').trim();
+
+  // Strip any existing query string from calcPath
+  path = path.split('?')[0];
+
+  // If not absolute, make it relative to current page
+  if(!path.startsWith('http')){
+    const base = window.location.href.split('?')[0].replace(/[^/]*$/, '');
+    path = base + path;
+  }
+
+  // Append params
+  const params = new URLSearchParams();
+  if(ticker){
+    params.set('ticker',  encodeURIComponent(ticker).toUpperCase());
+    params.set('autofill','1');
+  }
+  params.set('api', apiBase);
+
+  const finalUrl = path + '?' + params.toString();
+  console.log('[PLM] Opening calculator:', finalUrl);
+  window.open(finalUrl, '_blank');
 }
 
 // ── Init ─────────────────────────────────────────────────

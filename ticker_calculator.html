@@ -191,6 +191,50 @@ tr.tr-ebit td:nth-child(n+2){color:var(--amber)}
 .growth-inputs .panel-title{font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--amber);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
 
 /* WATERMARK / FOOTER */
+/* QUARTERLY METRICS */
+.qtr-table{width:100%;border-collapse:collapse;margin-top:8px}
+.qtr-table th{font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);padding:8px 12px;text-align:right;border-bottom:1px solid var(--border);background:var(--bg2)}
+.qtr-table th:first-child{text-align:left}
+.qtr-table td{padding:8px 12px;border-bottom:1px solid var(--border2);font-size:12px;text-align:right;color:var(--text)}
+.qtr-table td:first-child{text-align:left;color:var(--text-dim);font-weight:500}
+.qtr-table tr:last-child td{border-bottom:none}
+.qtr-table tr:hover td{background:rgba(45,255,122,.02)}
+.qtr-pos{color:var(--green)}
+.qtr-neg{color:var(--red)}
+.qtr-neutral{color:var(--text-dim)}
+.qtr-trend{font-size:10px;margin-left:4px;opacity:.8}
+.assumption-check{display:flex;gap:8px;align-items:flex-start;padding:8px 12px;border-radius:4px;margin-top:6px;font-size:11px;line-height:1.6}
+.assumption-check.ok{background:var(--green-dim);border:1px solid rgba(45,255,122,.2);color:var(--text)}
+.assumption-check.warn{background:var(--amber-dim);border:1px solid rgba(255,184,48,.2);color:var(--text)}
+.assumption-check.mismatch{background:var(--red-dim);border:1px solid rgba(255,92,92,.2);color:var(--text)}
+.ac-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.qtr-loading{padding:20px;text-align:center;color:var(--blue);font-size:12px;animation:pulse 1s infinite}
+.qtr-avg-row td{background:var(--panel);font-weight:600;color:var(--text-bright)}
+/* REVIEW PANEL */
+.review-panel{display:none;background:var(--bg2);border:1px solid rgba(45,255,122,.3);border-radius:8px;padding:0;margin-top:16px;overflow:hidden;animation:slideIn .2s ease}
+.review-panel.open{display:block}
+@keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.review-header{background:var(--panel);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.review-header-title{font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--green)}
+.review-header-sub{font-size:11px;color:var(--text-dim)}
+.review-body{padding:20px}
+.review-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+@media(max-width:600px){.review-grid{grid-template-columns:1fr}}
+.review-field{display:flex;flex-direction:column;gap:4px}
+.review-label{font-size:10px;font-family:var(--fh);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);display:flex;align-items:center;justify-content:space-between}
+.review-ai-val{font-size:10px;color:var(--blue);background:var(--blue-dim);padding:1px 6px;border-radius:2px;font-family:var(--fm)}
+.review-input{background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--green);font-family:var(--fm);font-size:13px;font-weight:500;padding:7px 10px;outline:none;transition:border-color .2s,background .2s}
+.review-input:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(45,255,122,.12)}
+.review-input.manual{border-color:var(--amber);color:var(--amber)}
+.review-input.manual:focus{box-shadow:0 0 0 2px rgba(255,184,48,.12)}
+.review-textarea{background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--text-bright);font-family:var(--fm);font-size:12px;padding:10px 12px;outline:none;width:100%;resize:vertical;min-height:80px;line-height:1.6;transition:border-color .2s}
+.review-textarea:focus{border-color:var(--green)}
+.review-section-title{font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--green);margin:16px 0 10px;display:flex;align-items:center;gap:8px}
+.review-section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.review-change-badge{font-size:9px;background:var(--amber-dim);color:var(--amber);border:1px solid rgba(255,184,48,.3);border-radius:2px;padding:1px 5px;font-family:var(--fh);font-weight:700}
+.review-actions{display:flex;gap:10px;padding:16px 20px;border-top:1px solid var(--border);background:var(--panel);align-items:center;flex-wrap:wrap}
+.review-summary{font-size:11px;color:var(--text-dim);flex:1}
+.review-summary strong{color:var(--amber)}
 footer{margin-top:48px;padding:24px 0;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:11px;color:var(--text-dim)}
 .footer-note{max-width:600px;line-height:1.5}
 .generated-stamp{text-align:right;font-size:10px;color:var(--text-dim)}
@@ -238,7 +282,7 @@ footer{margin-top:48px;padding:24px 0;border-top:1px solid var(--border);display
       <input type="text" id="currencyInput" placeholder="₹Cr / $mm" style="background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--amber);font-family:var(--fm);font-size:13px;padding:6px 10px;outline:none;width:100px" />
     </div>
   </div>
-  <button class="btn-load" onclick="autofillWithAI()">⚡ AI Autofill</button>
+  <button class="btn-load" onclick="safeAutofill()">⚡ AI Autofill</button>
 </div>
 <div id="aiStatus" class="ai-status"></div>
 
@@ -427,6 +471,25 @@ footer{margin-top:48px;padding:24px 0;border-top:1px solid var(--border);display
   <!-- TAB: RATIONALE -->
   <div class="tab-pane" id="pane-rationale">
     <div class="sec-label">Investment Rationale &amp; Assumption Basis</div>
+
+    <!-- QUARTERLY REALITY CHECK -->
+    <div class="panel" style="margin-bottom:18px">
+      <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>📊 Last 5 Quarters — Reality Check</span>
+        <button onclick="fetchQuarterlyData()" style="background:var(--green-dim);border:1px solid rgba(45,255,122,.3);color:var(--green);font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.1em;padding:4px 12px;border-radius:3px;cursor:pointer">↻ Refresh</button>
+      </div>
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:12px;line-height:1.6">
+        Actual quarterly performance vs your model assumptions — use this to validate whether your growth rates and margins are realistic.
+      </div>
+      <div id="qtrLoading" class="qtr-loading" style="display:none">Fetching quarterly data via AI…</div>
+      <div id="qtrContent">
+        <div style="text-align:center;padding:24px;color:var(--text-dim);font-size:12px">
+          Run AI Autofill or click ↻ Refresh to load quarterly metrics
+        </div>
+      </div>
+      <div id="assumptionChecks" style="margin-top:12px"></div>
+    </div>
+
     <div class="panel" id="whyPanel">
       <div class="panel-title">Why These Growth Rates?</div>
       <div id="whyContent" style="color:var(--text-dim);font-size:12px;line-height:2">
@@ -453,12 +516,13 @@ footer{margin-top:48px;padding:24px 0;border-top:1px solid var(--border);display
 <div style="margin-top:40px;padding-top:28px;border-top:1px solid var(--border)">
   <div class="sec-label">Save to Database</div>
 
-  <!-- API config (collapsed by default) -->
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
     <button class="btn-save" onclick="toggleApiConfig()">⚙️ &nbsp;API Settings</button>
-    <button class="btn-save" style="color:var(--green);border-color:var(--green)" onclick="saveToDatabase()">💾 &nbsp;Save Valuation</button>
-    <span style="font-size:11px;color:var(--text-dim)">Saves inputs, calculations, and all comments to your database</span>
+    <button class="btn-save" style="color:var(--green);border-color:var(--green)" onclick="openReviewPanel()">📝 &nbsp;Review &amp; Save</button>
+    <span style="font-size:11px;color:var(--text-dim)">Review and override all assumptions before saving to database</span>
   </div>
+
+  <!-- API config -->
   <div class="api-config" id="apiConfig">
     <div class="panel-title">API Connection</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
@@ -474,11 +538,135 @@ footer{margin-top:48px;padding:24px 0;border-top:1px solid var(--border);display
         <div class="il" style="margin-bottom:4px">Save Comments?</div>
         <select id="saveComments" style="background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--text-bright);font-family:var(--fm);font-size:13px;padding:7px 10px;width:100%;outline:none">
           <option value="yes">Yes — include all</option>
-          <option value="no">No — skip</option>
+          <option value="no">AI only — skip manual notes</option>
         </select>
       </div>
     </div>
   </div>
+
+  <!-- REVIEW PANEL -->
+  <div class="review-panel" id="reviewPanel">
+    <div class="review-header">
+      <div>
+        <div class="review-header-title">📝 Review &amp; Override Assumptions</div>
+        <div class="review-header-sub">Amber fields were changed from AI values. All fields update the calculation live.</div>
+      </div>
+      <button class="modal-close" onclick="closeReviewPanel()" style="background:transparent;border:1px solid var(--border);color:var(--text-dim);border-radius:3px;cursor:pointer;font-size:16px;width:28px;height:28px;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>
+    <div class="review-body">
+
+      <div class="review-section-title">Market Data</div>
+      <div class="review-grid">
+        <div class="review-field">
+          <div class="review-label">Stock Price <span class="review-ai-val" id="rv-ai-stockPrice"></span></div>
+          <input class="review-input" id="rv-stockPrice" type="number" step="0.01" oninput="onReviewChange('stockPrice',this)">
+        </div>
+        <div class="review-field">
+          <div class="review-label">Shares Outstanding (mm) <span class="review-ai-val" id="rv-ai-sharesOut"></span></div>
+          <input class="review-input" id="rv-sharesOut" type="number" step="0.1" oninput="onReviewChange('sharesOut',this)">
+        </div>
+        <div class="review-field">
+          <div class="review-label">Net Debt <span class="review-ai-val" id="rv-ai-netDebt"></span></div>
+          <input class="review-input" id="rv-netDebt" type="number" step="1" oninput="onReviewChange('netDebt',this)">
+        </div>
+        <div class="review-field">
+          <div class="review-label">Base Revenue <span class="review-ai-val" id="rv-ai-baseRev"></span></div>
+          <input class="review-input" id="rv-baseRev" type="number" step="0.1" oninput="onReviewChange('baseRev',this)">
+        </div>
+      </div>
+
+      <div class="review-section-title">DCF Assumptions</div>
+      <div class="review-grid">
+        <div class="review-field">
+          <div class="review-label">WACC <span class="review-ai-val" id="rv-ai-wacc"></span></div>
+          <input class="review-input" id="rv-wacc" type="number" step="0.001" oninput="onReviewChange('wacc',this)">
+        </div>
+        <div class="review-field">
+          <div class="review-label">Revenue Growth Yr 1–2 <span class="review-ai-val" id="rv-ai-gr12"></span></div>
+          <input class="review-input" id="rv-gr12" type="number" step="0.01" oninput="onReviewChange('gr12',this)">
+        </div>
+        <div class="review-field">
+          <div class="review-label">Revenue Growth Yr 3–5 <span class="review-ai-val" id="rv-ai-gr35"></span></div>
+          <input class="review-input" id="rv-gr35" type="number" step="0.01" oninput="onReviewChange('gr35',this)">
+        </div>
+        <div class="review-field">
+          <div class="review-label">Terminal Growth Rate <span class="review-ai-val" id="rv-ai-tgr"></span></div>
+          <input class="review-input" id="rv-tgr" type="number" step="0.001" oninput="onReviewChange('tgr',this)">
+        </div>
+        <div class="review-field">
+          <div class="review-label">EBITDA Margin Yr 1 <span class="review-ai-val" id="rv-ai-em1"></span></div>
+          <input class="review-input" id="rv-em1" type="number" step="0.001" oninput="onReviewChange('em1',this)">
+        </div>
+        <div class="review-field">
+          <div class="review-label">EBITDA Margin Yr 5 <span class="review-ai-val" id="rv-ai-em5"></span></div>
+          <input class="review-input" id="rv-em5" type="number" step="0.001" oninput="onReviewChange('em5',this)">
+        </div>
+        <div class="review-field">
+          <div class="review-label">D&amp;A % Revenue <span class="review-ai-val" id="rv-ai-dna"></span></div>
+          <input class="review-input" id="rv-dna" type="number" step="0.001" oninput="onReviewChange('dna',this)">
+        </div>
+        <div class="review-field">
+          <div class="review-label">CapEx % Revenue <span class="review-ai-val" id="rv-ai-capex"></span></div>
+          <input class="review-input" id="rv-capex" type="number" step="0.001" oninput="onReviewChange('capex',this)">
+        </div>
+        <div class="review-field">
+          <div class="review-label">NWC % Revenue <span class="review-ai-val" id="rv-ai-nwc"></span></div>
+          <input class="review-input" id="rv-nwc" type="number" step="0.001" oninput="onReviewChange('nwc',this)">
+        </div>
+        <div class="review-field">
+          <div class="review-label">Tax Rate <span class="review-ai-val" id="rv-ai-taxRate"></span></div>
+          <input class="review-input" id="rv-taxRate" type="number" step="0.001" oninput="onReviewChange('taxRate',this)">
+        </div>
+      </div>
+
+      <div class="review-section-title">Growth Model Assumptions</div>
+      <div class="review-grid">
+        <div class="review-field">
+          <div class="review-label">Base EPS <span class="review-ai-val" id="rv-ai-baseEPS"></span></div>
+          <input class="review-input" id="rv-baseEPS" type="number" step="0.01" oninput="onReviewChange('baseEPS',this)">
+        </div>
+        <div class="review-field">
+          <div class="review-label">EPS Growth Yr 1–5 <span class="review-ai-val" id="rv-ai-epsGr15"></span></div>
+          <input class="review-input" id="rv-epsGr15" type="number" step="0.01" oninput="onReviewChange('epsGr15',this)">
+        </div>
+        <div class="review-field">
+          <div class="review-label">EPS Growth Yr 6–10 <span class="review-ai-val" id="rv-ai-epsGr610"></span></div>
+          <input class="review-input" id="rv-epsGr610" type="number" step="0.01" oninput="onReviewChange('epsGr610',this)">
+        </div>
+        <div class="review-field">
+          <div class="review-label">Terminal P/E <span class="review-ai-val" id="rv-ai-termPE"></span></div>
+          <input class="review-input" id="rv-termPE" type="number" step="0.5" oninput="onReviewChange('termPE',this)">
+        </div>
+        <div class="review-field">
+          <div class="review-label">Required Return <span class="review-ai-val" id="rv-ai-reqReturn"></span></div>
+          <input class="review-input" id="rv-reqReturn" type="number" step="0.001" oninput="onReviewChange('reqReturn',this)">
+        </div>
+        <div class="review-field">
+          <div class="review-label">Dividend / Share <span class="review-ai-val" id="rv-ai-divPerSh"></span></div>
+          <input class="review-input" id="rv-divPerSh" type="number" step="0.01" oninput="onReviewChange('divPerSh',this)">
+        </div>
+      </div>
+
+      <div class="review-section-title">My Analyst Notes &amp; Rationale Override</div>
+      <div style="margin-bottom:8px">
+        <div class="il" style="margin-bottom:6px;font-size:11px;color:var(--text-dim)">
+          Write your own reasoning for these assumptions — this will be saved as an ANALYST comment and shown in the dashboard narrative tab.
+        </div>
+        <textarea class="review-textarea" id="rv-analystNotes" placeholder="e.g. I disagree with the AI's EBITDA margin estimate of 5% — management guided 12-15% in Q3 earnings call. Using 12% for Yr1 based on Q3 2024 actual margin of 11.8%..."></textarea>
+      </div>
+      <div style="margin-bottom:4px">
+        <div class="il" style="margin-bottom:6px;font-size:11px;color:var(--text-dim)">Key risks I see (one per line)</div>
+        <textarea class="review-textarea" id="rv-manualRisks" placeholder="e.g. Execution risk on new facility ramp&#10;Customer concentration — top 3 = 60% revenue&#10;Regulatory risk on import duties" style="min-height:60px"></textarea>
+      </div>
+    </div>
+
+    <div class="review-actions">
+      <div class="review-summary" id="reviewSummary">No changes from AI values</div>
+      <button class="btn-save" style="color:var(--text-dim);border-color:var(--border)" onclick="resetReviewToAI()">↺ Reset to AI Values</button>
+      <button class="btn-save" style="color:var(--green);border-color:var(--green)" onclick="confirmAndSave()">💾 &nbsp;Confirm &amp; Save</button>
+    </div>
+  </div>
+
   <div id="saveStatus" class="save-status"></div>
 </div>
 
@@ -498,6 +686,9 @@ footer{margin-top:48px;padding:24px 0;border-top:1px solid var(--border);display
 </div><!-- /wrap -->
 
 <script>
+// ── Global safe wrappers (defined first so inline onclick always finds them) ──
+function safeAutofill(){ if(typeof autofillWithAI==='function') autofillWithAI(); else console.error('autofillWithAI not ready'); }
+
 // ── DEFAULTS (Saatvik) ──
 const DEFAULT = {
   ticker:'SAATVIKGL', company:'Saatvik Green Energy', currency:'₹Cr', exchange:'NSE / BSE',
@@ -546,48 +737,74 @@ const DEFAULT = {
 let histData = JSON.parse(JSON.stringify(DEFAULT.hist));
 let bsData   = JSON.parse(JSON.stringify(DEFAULT.bs));
 let riskData = JSON.parse(JSON.stringify(DEFAULT.risks));
-let currentTicker  = DEFAULT.ticker;
-let currentCompany = DEFAULT.company;
+
+// ── Read URL params IMMEDIATELY (before window.onload) ──
+// This ensures currentTicker is correct from the very first line
+const _urlParams  = new URLSearchParams(window.location.search);
+const _urlTicker  = decodeURIComponent(_urlParams.get('ticker') || '').trim().toUpperCase();
+const _urlAutofill= _urlParams.get('autofill') === '1';
+const _urlApi     = _urlParams.get('api') || '';
+
+let currentTicker   = _urlTicker  || DEFAULT.ticker;
+let currentCompany  = DEFAULT.company;
 let currentCurrency = DEFAULT.currency;
+
+// Set API URL immediately if passed
+if(_urlApi){
+  // Store it — DOM not ready yet, will apply in onload
+  window._pendingApi = _urlApi;
+}
+
+console.log('[PLM] Script init — ticker:', currentTicker, 'autofill:', _urlAutofill);
 
 // ── INIT ──
 window.onload = () => {
   setGeneratedTimestamp();
 
-  // ── Check URL params — e.g. ?ticker=TSLA&autofill=1 (from dashboard Recalc) ──
-  const params   = new URLSearchParams(window.location.search);
-  const urlTicker   = (params.get('ticker') || '').trim().toUpperCase();
-  const autoFill    = params.get('autofill') === '1';
+  // Apply pending API URL now that DOM is ready
+  if(window._pendingApi){
+    const el = document.getElementById('apiUrl');
+    if(el) el.value = window._pendingApi;
+  }
 
-  if(urlTicker){
-    // Pre-fill ticker from URL, clear company so autofill doesn't get stale data
-    document.getElementById('tickerInput').value  = urlTicker;
-    document.getElementById('companyInput').value = '';
-    document.getElementById('currencyInput').value = '';
-    // Show a banner so user knows what's happening
-    const aiStatus = document.getElementById('aiStatus');
-    if(aiStatus){
-      aiStatus.className = 'ai-status ai-loading';
-      aiStatus.style.display = 'block';
-      aiStatus.textContent = '↻  Recalculating ' + urlTicker + ' as of today — fetching live data…';
-    }
+  console.log('[PLM] onload — currentTicker:', currentTicker, 'autofill:', _urlAutofill);
+
+  if(_urlTicker){
+    // ── RECALC MODE ──
+    // currentTicker is already set correctly from script init above
+    // Now set all DOM fields
+    document.getElementById('tickerInput').value        = _urlTicker;
+    document.getElementById('companyInput').value       = '';
+    document.getElementById('currencyInput').value      = '';
+    document.getElementById('headerTicker').textContent = _urlTicker;
+    document.getElementById('headerCompany').textContent= '';
+    document.getElementById('headerCurrTag').textContent= '—';
+    document.getElementById('footerTicker').textContent = _urlTicker + ' — DCF Valuation';
+    document.title = _urlTicker + ' — DCF Valuation';
+
     renderHistTable(); renderBsSection(); renderRiskTable();
-    if(autoFill){
-      // Small delay so the page renders first
-      setTimeout(() => autofillWithAI(), 400);
-    } else {
-      applyHeader();
-      calculate();
+    calculate();
+
+    if(_urlAutofill){
+      const st = document.getElementById('aiStatus');
+      st.className     = 'ai-status ai-loading';
+      st.style.display = 'block';
+      st.textContent   = '⚡ Loading ' + _urlTicker + ' — fetching live data…';
+
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        document.getElementById('tickerInput').value = _urlTicker;
+        console.log('[PLM] Firing autofill for:', _urlTicker);
+        safeAutofill();
+      }));
     }
+
   } else {
-    // Normal load — show defaults
+    // ── NORMAL MODE ──
     document.getElementById('tickerInput').value   = DEFAULT.ticker;
     document.getElementById('companyInput').value  = DEFAULT.company;
     document.getElementById('currencyInput').value = DEFAULT.currency;
     applyHeader();
-    renderHistTable();
-    renderBsSection();
-    renderRiskTable();
+    renderHistTable(); renderBsSection(); renderRiskTable();
     calculate();
   }
 };
@@ -616,8 +833,16 @@ function applyHeader(){
 
 // ── AI AUTOFILL ──
 async function autofillWithAI(){
-  const ticker  = (document.getElementById('tickerInput').value.trim().toUpperCase()) || 'TSLA';
-  // Clear company field immediately — do NOT use it as a prompt hint (causes stale data bleed)
+  // Always read ticker fresh from input — resetAll() preserves it
+  const ticker = (document.getElementById('tickerInput').value.trim().toUpperCase())
+               || currentTicker
+               || 'TSLA';
+  if(!ticker){ 
+    const s = document.getElementById('aiStatus');
+    if(s){ s.className='ai-status ai-err'; s.style.display='block'; s.textContent='✗ No ticker entered. Type a ticker symbol first.'; }
+    return;
+  }
+  // Clear company field immediately — do NOT use it as a prompt hint
   document.getElementById('companyInput').value = '';
   document.getElementById('headerCompany').textContent = '';
   document.getElementById('headerTicker').textContent  = ticker;
@@ -636,6 +861,7 @@ async function autofillWithAI(){
     ].forEach(id => document.getElementById(id).value = '');
     document.getElementById('companyInput').value   = '';
     document.getElementById('currencyInput').value  = '';
+    // Never clear tickerInput — it holds the ticker the user wants
     document.getElementById('headerExchange').textContent = '—';
     document.getElementById('headerTicker').textContent   = ticker;
     document.getElementById('headerCompany').textContent  = '';
@@ -809,7 +1035,11 @@ async function autofillWithAI(){
     }
 
     calculate();
-    setStatus('ai-ok','\u2713 '+label+' loaded (live price via web search). Review inputs then click \u25B6 Recalculate DCF.');
+    setStatus('ai-ok','\u2713 '+label+' loaded. Fetching quarterly metrics…');
+    // Auto-fetch quarterly data after autofill completes
+    fetchQuarterlyData().then(()=>{
+      setStatus('ai-ok','\u2713 '+label+' loaded with live price + quarterly data. Review inputs then click \u25B6 Recalculate DCF.');
+    });
 
   } catch(e){
     console.error('Autofill error:', e);
@@ -888,6 +1118,182 @@ function switchTab(name){
   const pane = document.getElementById('pane-' + name);
   if(btn)  btn.classList.add('tab-active');
   if(pane) pane.classList.add('active');
+}
+
+// ── QUARTERLY METRICS ──
+let _qtrData = null;
+
+async function fetchQuarterlyData(){
+  if(!currentTicker){
+    document.getElementById('qtrContent').innerHTML =
+      '<div style="color:var(--red);padding:12px;font-size:12px">No ticker loaded — run AI Autofill first.</div>';
+    return;
+  }
+
+  const loading = document.getElementById('qtrLoading');
+  const content = document.getElementById('qtrContent');
+  const checks  = document.getElementById('assumptionChecks');
+  loading.style.display = 'block';
+  content.innerHTML = '';
+  checks.innerHTML   = '';
+
+  const apiBase = (document.getElementById('apiUrl').value||'http://localhost:8000').replace(/\/$/,'');
+  const prompt = 'You are a financial analyst. For the stock "' + currentTicker + '", provide the last 5 quarters of actual financial data. '
+    + 'Return ONLY a JSON object, no markdown, no explanation. Schema: '
+    + '{"quarters":[{"q":"Q1 FY2024","rev":0,"rev_growth":0,"gross_margin":0,"ebitda":0,"ebitda_margin":0,"ebitda_growth":0}],'
+    + '"avg_rev_growth":0,"avg_gross_margin":0,"avg_ebitda_margin":0,"avg_ebitda_growth":0,'
+    + '"trend_rev":"accelerating|decelerating|stable","trend_margin":"expanding|contracting|stable",'
+    + '"currency":"INR Crore or USD mm","notes":"one sentence observation"} '
+    + 'q=quarter label, rev=revenue, rev_growth=YoY revenue growth decimal (e.g. 0.25), '
+    + 'gross_margin=gross profit/revenue decimal, ebitda=EBITDA amount, ebitda_margin=EBITDA/revenue decimal, '
+    + 'ebitda_growth=YoY EBITDA growth decimal. Use web search to get actual reported numbers. '
+    + 'If a quarter is not yet reported use null. Order from oldest to newest.';
+
+  try {
+    const resp = await fetch(apiBase + '/api/ai/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-5', max_tokens:1200,
+        tools:[{"type":"web_search_20250305","name":"web_search"}],
+        messages:[{role:'user', content: prompt}]
+      })
+    });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    const textBlocks = (data.content||[]).filter(c=>c.type==='text').map(c=>c.text||'');
+    if(!textBlocks.length) throw new Error('No response from AI');
+    const raw = textBlocks[textBlocks.length-1];
+
+    // Extract JSON
+    const start = raw.indexOf('{');
+    let s = start !== -1 ? raw.slice(start) : raw;
+    const depth_end = (() => { let d=0,i=0;
+      for(;i<s.length;i++){ if(s[i]==='{')d++; else if(s[i]==='}'){d--;if(d===0)return i;} } return s.length-1; })();
+    s = s.slice(0, depth_end+1).replace(/,\s*([}\]])/g,'$1');
+    _qtrData = JSON.parse(s);
+
+    loading.style.display = 'none';
+    renderQuarterlyData(_qtrData);
+  } catch(err){
+    loading.style.display = 'none';
+    content.innerHTML = '<div style="color:var(--red);padding:12px;font-size:12px">✗ Failed to fetch quarterly data: ' + err.message + '</div>';
+  }
+}
+
+function renderQuarterlyData(d){
+  const content = document.getElementById('qtrContent');
+  const checks  = document.getElementById('assumptionChecks');
+  if(!d || !d.quarters || !d.quarters.length){
+    content.innerHTML = '<div style="color:var(--text-dim);padding:12px;font-size:12px">No quarterly data available.</div>';
+    return;
+  }
+
+  const pct  = v => v == null ? '—' : (v>=0?'+':'') + (v*100).toFixed(1) + '%';
+  const fmtN = (v,d=1) => v == null ? '—' : Number(v).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+  const cls  = v => v == null ? 'qtr-neutral' : v > 0.05 ? 'qtr-pos' : v < -0.02 ? 'qtr-neg' : 'qtr-neutral';
+  const trend = v => v == null ? '' : v > 0.05 ? ' <span class="qtr-trend">▲</span>' : v < -0.02 ? ' <span class="qtr-trend">▼</span>' : '';
+
+  const rows = d.quarters.map(q => `
+    <tr>
+      <td>${q.q}</td>
+      <td>${fmtN(q.rev)}</td>
+      <td class="${cls(q.rev_growth)}">${qpct(q.rev_growth)}${trend(q.rev_growth)}</td>
+      <td class="${q.gross_margin>0.3?'qtr-pos':q.gross_margin<0.1?'qtr-neg':'qtr-neutral'}">${q.gross_margin!=null?(q.gross_margin*100).toFixed(1)+'%':'—'}</td>
+      <td>${fmtN(q.ebitda)}</td>
+      <td class="${cls(q.ebitda_margin)}">${q.ebitda_margin!=null?(q.ebitda_margin*100).toFixed(1)+'%':'—'}</td>
+      <td class="${cls(q.ebitda_growth)}">${qpct(q.ebitda_growth)}${trend(q.ebitda_growth)}</td>
+    </tr>`).join('');
+
+  const avgRow = `
+    <tr class="qtr-avg-row">
+      <td>5-Qtr Average</td>
+      <td>—</td>
+      <td class="${cls(d.avg_rev_growth)}">${qpct(d.avg_rev_growth)}</td>
+      <td>${d.avg_gross_margin!=null?(d.avg_gross_margin*100).toFixed(1)+'%':'—'}</td>
+      <td>—</td>
+      <td>${d.avg_ebitda_margin!=null?(d.avg_ebitda_margin*100).toFixed(1)+'%':'—'}</td>
+      <td class="${cls(d.avg_ebitda_growth)}">${qpct(d.avg_ebitda_growth)}</td>
+    </tr>`;
+
+  content.innerHTML = `
+    <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px">
+      Currency: <strong style="color:var(--text)">${d.currency||''}</strong>
+      &nbsp;·&nbsp; Revenue trend: <strong style="color:var(--text)">${d.trend_rev||'—'}</strong>
+      &nbsp;·&nbsp; Margin trend: <strong style="color:var(--text)">${d.trend_margin||'—'}</strong>
+      ${d.notes ? '&nbsp;·&nbsp; <em>' + d.notes + '</em>' : ''}
+    </div>
+    <table class="qtr-table">
+      <tr>
+        <th>Quarter</th>
+        <th>Revenue</th>
+        <th>Rev Growth YoY</th>
+        <th>Gross Margin</th>
+        <th>EBITDA</th>
+        <th>EBITDA Margin</th>
+        <th>EBITDA Growth YoY</th>
+      </tr>
+      ${rows}
+      ${avgRow}
+    </table>`;
+
+  // ── Assumption checks ──
+  const modelGr12   = parseFloat(document.getElementById('gr12').value)  || 0;
+  const modelGr35   = parseFloat(document.getElementById('gr35').value)  || 0;
+  const modelEm1    = parseFloat(document.getElementById('em1').value)   || 0;
+  const modelEm5    = parseFloat(document.getElementById('em5').value)   || 0;
+  const avgRevGr    = d.avg_rev_growth    || 0;
+  const avgEbMargin = d.avg_ebitda_margin || 0;
+  const trendRev    = (d.trend_rev    ||'').toLowerCase();
+  const trendMargin = (d.trend_margin ||'').toLowerCase();
+
+  let checkHTML = '<div style="font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px">Assumption Validation</div>';
+
+  // Revenue growth check
+  const revDiff = modelGr12 - avgRevGr;
+  if(Math.abs(revDiff) < 0.05){
+    checkHTML += check('ok', '✅', 'Revenue Growth Yr1-2 (' + qpct(modelGr12) + ') aligns with recent average (' + qpct(avgRevGr) + '). Assumption is well-anchored in history.');
+  } else if(modelGr12 > avgRevGr + 0.10){
+    checkHTML += check('warn', '⚠️', 'Revenue Growth Yr1-2 (' + qpct(modelGr12) + ') is significantly above recent average (' + qpct(avgRevGr) + '). Verify this is supported by order book, capacity expansion, or guidance.');
+  } else if(modelGr12 < avgRevGr - 0.10){
+    checkHTML += check('ok', '✅', 'Revenue Growth Yr1-2 (' + qpct(modelGr12) + ') is conservative vs recent average (' + qpct(avgRevGr) + '). Good MOS cushion in growth assumption.');
+  } else {
+    checkHTML += check('ok', '✅', 'Revenue Growth Yr1-2 (' + qpct(modelGr12) + ') is close to recent average (' + qpct(avgRevGr) + ').');
+  }
+
+  // Trend vs Yr3-5 assumption
+  if(trendRev === 'decelerating' && modelGr35 > avgRevGr){
+    checkHTML += check('mismatch', '❌', 'Revenue is decelerating in recent quarters but Yr3-5 growth (' + qpct(modelGr35) + ') is set above recent average. Consider lowering Yr3-5.');
+  } else if(trendRev === 'accelerating' && modelGr35 < avgRevGr * 0.5){
+    checkHTML += check('warn', '⚠️', 'Revenue is accelerating but Yr3-5 (' + qpct(modelGr35) + ') may be too conservative. Could understate fair value.');
+  } else {
+    checkHTML += check('ok', '✅', 'Yr3-5 growth assumption (' + qpct(modelGr35) + ') is reasonable given ' + (trendRev||'stable') + ' revenue trend.');
+  }
+
+  // EBITDA margin check
+  if(modelEm1 > avgEbMargin + 0.05){
+    checkHTML += check('mismatch', '❌', 'EBITDA Margin Yr1 (' + qpct(modelEm1) + ') is well above recent average (' + qpct(avgEbMargin) + '). This may be too optimistic — validate with management guidance.');
+  } else if(modelEm1 < avgEbMargin - 0.05){
+    checkHTML += check('ok', '✅', 'EBITDA Margin Yr1 (' + qpct(modelEm1) + ') is conservative vs recent average (' + qpct(avgEbMargin) + '). Good safety margin.');
+  } else {
+    checkHTML += check('ok', '✅', 'EBITDA Margin Yr1 (' + qpct(modelEm1) + ') is consistent with recent average (' + qpct(avgEbMargin) + ').');
+  }
+
+  // Margin trajectory check
+  if(modelEm5 > modelEm1 && trendMargin === 'contracting'){
+    checkHTML += check('warn', '⚠️', 'Model assumes margin expansion to ' + qpct(modelEm5) + ' by Yr5, but recent trend is contracting. Verify the path to margin recovery.');
+  } else if(modelEm5 > modelEm1 && trendMargin === 'expanding'){
+    checkHTML += check('ok', '✅', 'Margin expansion to ' + qpct(modelEm5) + ' by Yr5 is consistent with current expanding trend.');
+  } else {
+    checkHTML += check('ok', '✅', 'Margin trajectory from ' + qpct(modelEm1) + ' → ' + qpct(modelEm5) + ' is reasonable given ' + (trendMargin||'stable') + ' trend.');
+  }
+
+  checks.innerHTML = checkHTML;
+
+  function qpct(v){ return v==null?'—':(v>=0?'+':'')+(v*100).toFixed(1)+'%'; }
+  function check(type, icon, msg){
+    return '<div class="assumption-check ' + type + '">'
+      + '<span class="ac-icon">' + icon + '</span><span>' + msg + '</span></div>';
+  }
 }
 
 // ── VALUATION MODE ──
@@ -1192,6 +1598,144 @@ function toggleApiConfig(){
   el.classList.toggle('open');
 }
 
+// Snapshot of AI values when review panel is opened
+let _aiSnapshot = {};
+// Track manually changed fields
+let _manualFields = new Set();
+
+const REVIEW_FIELDS = [
+  'stockPrice','sharesOut','netDebt','baseRev',
+  'wacc','gr12','gr35','tgr','em1','em5','dna','capex','nwc','taxRate',
+  'baseEPS','epsGr15','epsGr610','termPE','reqReturn','divPerSh'
+];
+
+function openReviewPanel(){
+  if(!currentTicker){
+    document.getElementById('saveStatus').className='save-status save-err';
+    document.getElementById('saveStatus').style.display='block';
+    document.getElementById('saveStatus').textContent='No ticker loaded — run AI Autofill first.';
+    return;
+  }
+  // Snapshot current AI values and populate review fields
+  _aiSnapshot = {};
+  _manualFields = new Set();
+  REVIEW_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    const val = el ? el.value : '';
+    _aiSnapshot[id] = val;
+    // Populate review field
+    const rv = document.getElementById('rv-' + id);
+    const rvAI = document.getElementById('rv-ai-' + id);
+    if(rv){
+      rv.value = val;
+      rv.classList.remove('manual');
+    }
+    if(rvAI) rvAI.textContent = 'AI: ' + (val || '—');
+  });
+  _manualFields.clear();
+  updateReviewSummary();
+  document.getElementById('reviewPanel').classList.add('open');
+  // Scroll to review panel
+  document.getElementById('reviewPanel').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function closeReviewPanel(){
+  document.getElementById('reviewPanel').classList.remove('open');
+}
+
+function onReviewChange(fieldId, input){
+  const aiVal = _aiSnapshot[fieldId];
+  const isChanged = input.value !== aiVal;
+  if(isChanged){
+    input.classList.add('manual');
+    _manualFields.add(fieldId);
+  } else {
+    input.classList.remove('manual');
+    _manualFields.delete(fieldId);
+  }
+  // Sync back to main input so calculation updates live
+  const mainInput = document.getElementById(fieldId);
+  if(mainInput){
+    mainInput.value = input.value;
+    calculate();
+  }
+  updateReviewSummary();
+}
+
+function updateReviewSummary(){
+  const count = _manualFields.size;
+  const el = document.getElementById('reviewSummary');
+  if(!el) return;
+  if(count === 0){
+    el.innerHTML = 'No changes from AI values';
+  } else {
+    const names = [..._manualFields].map(f => {
+      const labels = {
+        stockPrice:'Stock Price', sharesOut:'Shares', netDebt:'Net Debt', baseRev:'Base Revenue',
+        wacc:'WACC', gr12:'Growth Yr1-2', gr35:'Growth Yr3-5', tgr:'Terminal Growth',
+        em1:'EBITDA Margin Yr1', em5:'EBITDA Margin Yr5', dna:'D&A%', capex:'CapEx%',
+        nwc:'NWC%', taxRate:'Tax Rate', baseEPS:'Base EPS', epsGr15:'EPS Growth Yr1-5',
+        epsGr610:'EPS Growth Yr6-10', termPE:'Terminal P/E', reqReturn:'Req Return', divPerSh:'Dividend'
+      };
+      return labels[f] || f;
+    });
+    el.innerHTML = '<strong style="color:var(--amber)">' + count + ' field' + (count>1?'s':'') + ' overridden</strong>: '
+      + names.join(', ');
+  }
+}
+
+function resetReviewToAI(){
+  REVIEW_FIELDS.forEach(id => {
+    const rv = document.getElementById('rv-' + id);
+    if(rv){
+      rv.value = _aiSnapshot[id] || '';
+      rv.classList.remove('manual');
+      // Sync back to main
+      const main = document.getElementById(id);
+      if(main) main.value = _aiSnapshot[id] || '';
+    }
+  });
+  _manualFields.clear();
+  document.getElementById('rv-analystNotes').value = '';
+  document.getElementById('rv-manualRisks').value  = '';
+  updateReviewSummary();
+  calculate();
+}
+
+function confirmAndSave(){
+  // Sync all review fields back to main inputs one final time
+  REVIEW_FIELDS.forEach(id => {
+    const rv = document.getElementById('rv-' + id);
+    const main = document.getElementById(id);
+    if(rv && main) main.value = rv.value;
+  });
+  calculate();
+
+  // Capture manual notes before closing panel
+  _pendingManualNotes  = (document.getElementById('rv-analystNotes').value || '').trim();
+  _pendingManualRisks  = (document.getElementById('rv-manualRisks').value  || '').trim();
+  _pendingManualFields = new Set(_manualFields);
+
+  // Warn if no AI narrative found — user may not have run autofill
+  const whyItems = document.querySelectorAll('#whyContent div');
+  const hasNarrative = whyItems.length > 0 &&
+    [...whyItems].some(el => el.textContent.trim() && el.textContent.trim() !== 'Fetching analysis…');
+  if(!hasNarrative){
+    const st = document.getElementById('saveStatus');
+    st.className = 'save-status save-ok';
+    st.style.display = 'block';
+    st.textContent = '⚠ Note: No AI narrative found — only inputs and calculations will be saved. Run AI Autofill first to capture rationale, risks and stress tests.';
+  }
+
+  closeReviewPanel();
+  saveToDatabase();
+}
+
+// Store pending manual overrides to inject into comments payload
+let _pendingManualNotes  = '';
+let _pendingManualRisks  = '';
+let _pendingManualFields = new Set();
+
 function buildPayload(){
   const g = id => parseFloat(document.getElementById(id).value) || 0;
   const gs = id => document.getElementById(id).value.trim();
@@ -1225,6 +1769,100 @@ function buildPayload(){
   (bsData||[]).forEach((b,i) => {
     comments.push({comment_type:'BALANCE', title: b.metric+' ['+b.rating+']: '+b.value, body: b.note, sort_order: i, source:'AI'});
   });
+
+  // Inject manual analyst notes if any
+  if(_pendingManualNotes){
+    comments.push({
+      comment_type:'ANALYST',
+      title: 'Manual Override — ' + _manualFields.size + ' field(s) changed from AI',
+      body:  _pendingManualNotes,
+      sort_order: 0,
+      source:'MANUAL'
+    });
+  }
+  if(_pendingManualRisks){
+    _pendingManualRisks.split('\n').filter(l=>l.trim()).forEach((line,i)=>{
+      comments.push({comment_type:'ANALYST', title:'Manual Risk', body:line.trim(), sort_order:i+10, source:'MANUAL'});
+    });
+  }
+  // Note which fields were manually overridden
+  if(_pendingManualFields && _pendingManualFields.size > 0){
+    const fieldList = [..._pendingManualFields].join(', ');
+    comments.push({
+      comment_type:'ANALYST',
+      title:'Fields overridden from AI',
+      body: 'The following fields were manually changed before saving: ' + fieldList,
+      sort_order:99,
+      source:'MANUAL'
+    });
+  }
+  // Reset pending after use
+  _pendingManualNotes  = '';
+  _pendingManualRisks  = '';
+  _pendingManualFields = new Set();
+
+  // ── Quarterly data — save each quarter as an ANALYST comment ──
+  if(_qtrData && _qtrData.quarters && _qtrData.quarters.length){
+    const bpct = v => v==null?'N/A':(Number(v)>=0?'+':'')+(Number(v)*100).toFixed(1)+'%';
+    const fmtN = v => v==null?'N/A':Number(v).toLocaleString('en-US',{maximumFractionDigits:1});
+
+    // Save summary row first
+    comments.push({
+      comment_type: 'ANALYST',
+      title: 'Quarterly Data — 5-Quarter Summary (' + (_qtrData.currency||'') + ')',
+      body: [
+        'Avg Revenue Growth YoY: ' + bpct(_qtrData.avg_rev_growth),
+        'Avg Gross Margin: '        + (_qtrData.avg_gross_margin!=null?(_qtrData.avg_gross_margin*100).toFixed(1)+'%':'N/A'),
+        'Avg EBITDA Margin: '       + (_qtrData.avg_ebitda_margin!=null?(_qtrData.avg_ebitda_margin*100).toFixed(1)+'%':'N/A'),
+        'Avg EBITDA Growth YoY: '   + bpct(_qtrData.avg_ebitda_growth),
+        'Revenue Trend: '           + (_qtrData.trend_rev||'N/A'),
+        'Margin Trend: '            + (_qtrData.trend_margin||'N/A'),
+        _qtrData.notes ? 'Note: ' + _qtrData.notes : ''
+      ].filter(Boolean).join(' | '),
+      sort_order: 200,
+      source: 'AI'
+    });
+
+    // Save each quarter as individual row
+    _qtrData.quarters.forEach((q, i) => {
+      comments.push({
+        comment_type: 'ANALYST',
+        title: 'Quarter: ' + q.q,
+        body: [
+          'Revenue: ' + fmtN(q.rev),
+          'Rev Growth YoY: ' + bpct(q.rev_growth),
+          'Gross Margin: ' + (q.gross_margin!=null?(q.gross_margin*100).toFixed(1)+'%':'N/A'),
+          'EBITDA: ' + fmtN(q.ebitda),
+          'EBITDA Margin: ' + (q.ebitda_margin!=null?(q.ebitda_margin*100).toFixed(1)+'%':'N/A'),
+          'EBITDA Growth YoY: ' + bpct(q.ebitda_growth)
+        ].join(' | '),
+        sort_order: 201 + i,
+        source: 'AI'
+      });
+    });
+
+    // Save assumption validation checks
+    const modelGr12   = parseFloat(document.getElementById('gr12').value)  || 0;
+    const modelEm1    = parseFloat(document.getElementById('em1').value)   || 0;
+    const avgRevGr    = _qtrData.avg_rev_growth    || 0;
+    const avgEbMargin = _qtrData.avg_ebitda_margin || 0;
+    const revDiff     = Math.abs(modelGr12 - avgRevGr);
+    const marginDiff  = Math.abs(modelEm1  - avgEbMargin);
+    const validations = [];
+    if(revDiff > 0.10)
+      validations.push('⚠ Revenue Growth Yr1-2 (' + bpct(modelGr12) + ') differs significantly from 5-qtr avg (' + bpct(avgRevGr) + ')');
+    if(marginDiff > 0.05)
+      validations.push('⚠ EBITDA Margin Yr1 (' + bpct(modelEm1) + ') differs significantly from 5-qtr avg (' + bpct(avgEbMargin) + ')');
+    if(validations.length){
+      comments.push({
+        comment_type: 'ANALYST',
+        title: 'Assumption Validation Warnings',
+        body: validations.join(' | '),
+        sort_order: 210,
+        source: 'AI'
+      });
+    }
+  }
 
   // Build calculations array
   const calcs = [];
@@ -1295,7 +1933,14 @@ function buildPayload(){
       created_by:         document.getElementById('apiUser').value.trim() || null,
     },
     calculations: calcs,
-    comments: document.getElementById('saveComments').value === 'yes' ? comments : [],
+    // Always save AI narrative (rationale, risks, stress, balance, quarterly)
+    // Only skip MANUAL/ANALYST comments if Save Comments = No
+    comments: (() => {
+      const saveAll = document.getElementById('saveComments').value === 'yes';
+      return saveAll
+        ? comments
+        : comments.filter(c => c.source === 'AI');  // always keep AI, skip MANUAL
+    })(),
   };
 }
 
