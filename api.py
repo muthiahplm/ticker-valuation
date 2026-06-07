@@ -514,15 +514,35 @@ async def anthropic_proxy(req: AnthropicProxyRequest):
             status_code=500,
             detail="ANTHROPIC_API_KEY not set in .env — add it and restart the server"
         )
+
+    has_web_search = any(
+        t.get("type") == "web_search_20250305" for t in req.tools
+    )
+
     payload = {
         "model":      req.model,
-        "max_tokens": req.max_tokens,
+        "max_tokens": min(req.max_tokens, 1024),   # hard cap — never exceed 1024 output tokens
         "messages":   req.messages,
     }
-    if req.tools:
+
+    if has_web_search:
+        # Limit web search results to reduce input tokens
+        payload["tools"] = [
+            {
+                "type": "web_search_20250305",
+                "name": "web_search",
+                "max_uses": 2,               # max 2 searches per call
+            }
+        ]
+        # Truncate the user message to 1500 chars to keep input tokens low
+        if payload["messages"] and payload["messages"][-1].get("role") == "user":
+            content = payload["messages"][-1].get("content", "")
+            if isinstance(content, str) and len(content) > 1500:
+                payload["messages"][-1]["content"] = content[:1500]
+    elif req.tools:
         payload["tools"] = req.tools
 
-    async with httpx.AsyncClient(timeout=60) as client:
+    async with httpx.AsyncClient(timeout=90) as client:
         try:
             resp = await client.post(
                 "https://api.anthropic.com/v1/messages",

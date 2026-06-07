@@ -108,6 +108,18 @@ h1 span{color:var(--green)}
 .runs-footer{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border);background:var(--bg);gap:12px}
 .runs-del-btn{opacity:.6;transition:opacity .2s,background .2s}
 .runs-del-btn:hover{opacity:1}
+/* Individual run delete — kept visually isolated from action buttons */
+.run-del-zone{display:flex;align-items:center;gap:8px;padding:3px 8px 3px 12px;border-left:2px solid var(--border);margin-left:6px}
+.run-del-btn{background:transparent;border:1px solid transparent;color:var(--text-dim);font-size:11px;font-family:var(--fh);font-weight:700;letter-spacing:.05em;padding:3px 8px;border-radius:2px;cursor:pointer;opacity:.4;transition:all .2s;white-space:nowrap}
+.run-del-btn:hover{opacity:1;color:var(--red);border-color:rgba(255,92,92,.4);background:var(--red-dim)}
+/* Confirm inline delete */
+.run-del-confirm{display:none;align-items:center;gap:6px;padding:3px 8px 3px 12px;border-left:2px solid rgba(255,92,92,.4);margin-left:6px;animation:fadeIn .15s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.run-del-confirm.show{display:flex}
+.run-del-confirm-text{font-size:10px;color:var(--red);font-family:var(--fh);font-weight:700;white-space:nowrap}
+.run-del-yes{background:var(--red);color:#fff;border:none;font-family:var(--fh);font-size:10px;font-weight:700;padding:3px 10px;border-radius:2px;cursor:pointer}
+.run-del-no{background:transparent;border:1px solid var(--border);color:var(--text-dim);font-family:var(--fh);font-size:10px;font-weight:700;padding:3px 8px;border-radius:2px;cursor:pointer}
+.run-del-no:hover{color:var(--text)}
 
 .runs-table{width:100%;border-collapse:collapse}
 .runs-table th{font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);padding:10px 16px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg)}
@@ -863,9 +875,18 @@ function runsTableHTML(runs, ticker){
         </div>
       </td>
       <td>
-        <div class="action-cell">
+        <div class="action-cell" style="align-items:center">
           <button class="btn btn-ghost btn-sm" onclick="openDetail(${r.input_id},'${ticker}',event)" title="View full details">View</button>
           <button class="btn btn-ghost btn-sm" onclick="openCalculator('${ticker}')" title="Recalculate as of today">↻ Recalc</button>
+          <!-- Isolated delete zone — visually separated by left border -->
+          <div class="run-del-zone" onclick="event.stopPropagation()">
+            <button class="run-del-btn" onclick="showRunDelConfirm(${r.input_id},this)" title="Delete this run">🗑</button>
+            <div class="run-del-confirm" id="rdc-${r.input_id}">
+              <span class="run-del-confirm-text">Delete ${fmtDate(r.generated_at)}?</span>
+              <button class="run-del-yes" onclick="deleteRun(${r.input_id},'${ticker}',this)">Yes, delete</button>
+              <button class="run-del-no" onclick="hideRunDelConfirm(${r.input_id})">Cancel</button>
+            </div>
+          </div>
         </div>
       </td>
     </tr>`;
@@ -892,7 +913,65 @@ function runsTableHTML(runs, ticker){
   </table>`;
 }
 
-// ── Delete ───────────────────────────────────────────────
+// ── Individual run delete (inline confirm) ───────────────
+function showRunDelConfirm(inputId, btn){
+  // Hide all other open confirms first
+  document.querySelectorAll('.run-del-confirm.show').forEach(el => {
+    if(el.id !== 'rdc-'+inputId) el.classList.remove('show');
+  });
+  document.querySelectorAll('.run-del-btn').forEach(b => {
+    if(b !== btn) b.style.opacity = '0.4';
+  });
+  const confirm = document.getElementById('rdc-'+inputId);
+  if(confirm){
+    confirm.classList.toggle('show');
+    btn.style.opacity = confirm.classList.contains('show') ? '0' : '0.4';
+  }
+}
+
+function hideRunDelConfirm(inputId){
+  const confirm = document.getElementById('rdc-'+inputId);
+  if(confirm) confirm.classList.remove('show');
+  // Restore all del buttons
+  document.querySelectorAll('.run-del-btn').forEach(b => b.style.opacity = '0.4');
+}
+
+async function deleteRun(inputId, ticker, btn){
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const resp = await fetch(apiBase() + '/api/valuations/' + inputId, {method:'DELETE'});
+    if(!resp.ok && resp.status !== 204) throw new Error('HTTP ' + resp.status);
+    setStatus('status-ok', '✓ Deleted run #' + inputId + ' for ' + ticker);
+    // Invalidate cached runs for this ticker across all grids
+    ['all','in','us','other'].forEach(g => {
+      const uid = ticker + '__' + g;
+      const el  = document.getElementById('runs-content-' + uid);
+      if(el){ delete el.dataset.loaded; }
+    });
+    // Reload this ticker's runs without full page refresh
+    const panels = ['all','in','us','other']
+      .map(g => document.getElementById('runs-content-' + ticker + '__' + g))
+      .filter(Boolean);
+    if(panels.length){
+      // Re-fetch runs and update all open panels
+      const runsResp = await fetch(apiBase() + '/api/valuations/' + ticker + '/runs');
+      const runs = await runsResp.json();
+      panels.forEach(panel => {
+        panel.innerHTML = runsTableHTML(runs, ticker);
+        panel.dataset.loaded = '1';
+      });
+    }
+    // Refresh stats
+    await loadAll();
+  } catch(e){
+    setStatus('status-err', '✗ Delete failed: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = 'Yes, delete';
+  }
+}
+
+// ── Delete whole ticker ───────────────────────────────────
 let pendingDeleteMode = 'ticker'; // 'ticker' only now
 
 function askDeleteTicker(ticker, e){

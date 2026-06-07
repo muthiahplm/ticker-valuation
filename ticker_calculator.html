@@ -968,18 +968,16 @@ async function autofillWithAI(){
     // ══ CALL 1: All financials + live price via Claude web_search ══
     setStatus('ai-loading','[1/2] Fetching live price and financials for '+label+'...');
 
-    const p1 = 'You are a financial data assistant with web search. ' +
-      'Search the web right now for the current stock price of "' + ticker + '" and return live market data. ' +
-      'Return ONLY a JSON object, no explanation, no markdown, just raw JSON. ' +
-      'Schema: {"co":"Full Company Name","ex":"NASDAQ","cur":"USD mm","px":0,"sh":0,"nd":0,"wc":0.09,"rv":0,"by":2024,"g1":0.15,"g2":0.10,"tg":0.04,"m1":0.18,"m5":0.22,"da":0.04,"cx":0.06,"nw":0.02,"tx":0.21,"ep":0,"eg1":0.15,"eg2":0.10,"pe":20,"rr":0.10,"dv":0,"h":[["FY2020",0,0.10],["FY2021",0,0.12],["FY2022",0,0.14],["FY2023",0,0.15],["FY2024",0,0.16]]} ' +
-      'px=CURRENT live price (search now not training data), co=full name, ex=exchange, cur=currency+unit, ' +
-      'sh=shares outstanding millions, nd=net debt negative means net cash, wc=WACC decimal, ' +
-      'rv=latest fiscal year revenue, by=fiscal year integer, ' +
-      'g1=yr1-2 revenue growth decimal, g2=yr3-5 growth decimal, tg=terminal growth must be below wc, ' +
-      'm1=EBITDA margin yr1, m5=yr5, da=DA pct, cx=capex pct, nw=NWC pct, tx=tax rate decimal, ' +
-      'ep=current EPS TTM, eg1=EPS growth rate yrs1-5 decimal, eg2=EPS growth rate yrs6-10 decimal, ' +
-      'pe=terminal PE exit multiple realistic for this sector, rr=required return decimal 0.10-0.15, ' +
-      'dv=annual dividend per share 0 if none, h=5yr history array. All numeric fields must be plain numbers.';
+    const p1 = 'Search web for current price of "' + ticker + '". Return ONLY JSON, no markdown: ' +
+      '{"co":"Name","ex":"Exchange","cur":"USD mm","px":0,"sh":0,"nd":0,"wc":0.10,"rv":0,"by":2024,' +
+      '"g1":0.15,"g2":0.10,"tg":0.04,"m1":0.18,"m5":0.22,"da":0.04,"cx":0.06,"nw":0.02,"tx":0.21,' +
+      '"ep":0,"eg1":0.15,"eg2":0.10,"pe":20,"rr":0.10,"dv":0,' +
+      '"h":[["FY2021",0,0.10],["FY2022",0,0.12],["FY2023",0,0.14],["FY2024",0,0.16],["FY2025",0,0.18]]} ' +
+      'px=live price now, co=company, ex=exchange, cur=currency+unit, sh=shares(mm), nd=net debt, ' +
+      'wc=WACC(US:0.08-0.11,India:0.12-0.16), rv=latest annual revenue, by=fiscal year int, ' +
+      'g1=rev growth yr1-2, g2=yr3-5, tg=terminal growth(<wc), m1=EBITDA margin yr1, m5=yr5, ' +
+      'da=DA%, cx=capex%, nw=NWC%, tx=tax rate, ep=TTM EPS, eg1=EPS growth yr1-5, eg2=yr6-10, ' +
+      'pe=terminal PE, rr=required return, dv=dividend/share, h=history[[yr,rev,margin]].';
 
     const o1 = await (async()=>{
       const apiBase = (document.getElementById('apiUrl').value || 'http://localhost:8000').replace(/\/$/,'');
@@ -1006,15 +1004,14 @@ async function autofillWithAI(){
 
     // ══ Step C: Narrative call ══
     setStatus('ai-loading','[2/2] Generating DCF analysis for '+label+'...');
-    const p2 = 'Financial analyst writing DCF commentary for "' + ticker + '". ' +
-      'Return ONLY a JSON object. No explanation, no markdown. Max 80 chars per string. No apostrophes in strings. ' +
-      'Schema: {"why":["str","str","str","str"],' +
-      '"risks":[{"s":"HIGH","r":"title","d":"sentence"},{"s":"HIGH","r":"title","d":"sentence"},' +
-               '{"s":"MED","r":"title","d":"sentence"},{"s":"MED","r":"title","d":"sentence"},' +
-               '{"s":"LOW","r":"title","d":"sentence"}],' +
-      '"stress":[{"ok":true,"t":"Bull:","b":"sentence"},{"ok":false,"t":"Bear:","b":"sentence"},' +
-               '{"ok":true,"t":"Outlook:","b":"sentence"},{"ok":false,"t":"Risk:","b":"sentence"}]} ' +
-      'why=4 growth drivers. s=HIGH/MED/LOW. ok=boolean.';
+    const p2 = 'DCF analyst for "' + ticker + '". Return ONLY JSON no markdown. Max 75 chars per string: ' +
+      '{"why":["w1","w2","w3","w4"],' +
+      '"risks":[{"s":"HIGH","r":"title","d":"detail"},{"s":"HIGH","r":"title","d":"detail"},' +
+               '{"s":"MED","r":"title","d":"detail"},{"s":"MED","r":"title","d":"detail"},' +
+               '{"s":"LOW","r":"title","d":"detail"}],' +
+      '"stress":[{"ok":true,"t":"Bull:","b":"detail"},{"ok":false,"t":"Bear:","b":"detail"},' +
+               '{"ok":true,"t":"Outlook:","b":"detail"},{"ok":false,"t":"Risk:","b":"detail"}]} ' +
+      'why=4 growth drivers. s=HIGH/MED/LOW only. ok=boolean. No apostrophes in strings.';
 
     const o2 = await aiCall(p2, 1000);
 
@@ -1138,16 +1135,11 @@ async function fetchQuarterlyData(){
   checks.innerHTML   = '';
 
   const apiBase = (document.getElementById('apiUrl').value||'http://localhost:8000').replace(/\/$/,'');
-  const prompt = 'You are a financial analyst. For the stock "' + currentTicker + '", provide the last 5 quarters of actual financial data. '
-    + 'Return ONLY a JSON object, no markdown, no explanation. Schema: '
-    + '{"quarters":[{"q":"Q1 FY2024","rev":0,"rev_growth":0,"gross_margin":0,"ebitda":0,"ebitda_margin":0,"ebitda_growth":0}],'
-    + '"avg_rev_growth":0,"avg_gross_margin":0,"avg_ebitda_margin":0,"avg_ebitda_growth":0,'
-    + '"trend_rev":"accelerating|decelerating|stable","trend_margin":"expanding|contracting|stable",'
-    + '"currency":"INR Crore or USD mm","notes":"one sentence observation"} '
-    + 'q=quarter label, rev=revenue, rev_growth=YoY revenue growth decimal (e.g. 0.25), '
-    + 'gross_margin=gross profit/revenue decimal, ebitda=EBITDA amount, ebitda_margin=EBITDA/revenue decimal, '
-    + 'ebitda_growth=YoY EBITDA growth decimal. Use web search to get actual reported numbers. '
-    + 'If a quarter is not yet reported use null. Order from oldest to newest.';
+  const prompt = 'For "' + currentTicker + '" return ONLY JSON no markdown: ' +
+    '{"quarters":[{"q":"Q1FY24","rev":0,"rev_growth":0,"gross_margin":0,"ebitda":0,"ebitda_margin":0,"ebitda_growth":0}],' +
+    '"avg_rev_growth":0,"avg_gross_margin":0,"avg_ebitda_margin":0,"avg_ebitda_growth":0,' +
+    '"trend_rev":"stable","trend_margin":"stable","currency":"USD mm","notes":"brief observation"} ' +
+    'Last 5 quarters actual data. rev_growth/ebitda_growth=YoY decimal. Use web search for real numbers.';
 
   try {
     const resp = await fetch(apiBase + '/api/ai/messages', {
