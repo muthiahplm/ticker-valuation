@@ -99,6 +99,32 @@ h1 span{color:var(--green)}
 .expanded .expand-icon{transform:rotate(180deg)}
 
 .run-count{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:2px 8px;font-size:10px;color:var(--text-dim);white-space:nowrap}
+.live-price-badge{font-size:9px;font-family:var(--fh);font-weight:700;letter-spacing:.05em;padding:1px 6px;border-radius:2px;white-space:nowrap;display:inline-block;margin-top:3px}
+.lp-loading{background:var(--bg2);color:var(--text-dim);border:1px solid var(--border);animation:pulse 1.5s infinite}
+.lp-up{background:var(--green-dim);color:var(--green);border:1px solid rgba(45,255,122,.3)}
+.lp-dn{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,92,92,.3)}
+.lp-flat{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(255,184,48,.3)}
+.live-dot{display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:3px;vertical-align:middle}
+.live-dot.green{background:var(--green);box-shadow:0 0 4px var(--green)}
+.live-dot.red{background:var(--red)}
+.live-dot.amber{background:var(--amber)}
+
+/* PER-TICKER LIVE PRICE + RECALC */
+.lp-fetch-btn{font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:2px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-dim);transition:all .2s;white-space:nowrap}
+.lp-fetch-btn:hover{color:var(--blue);border-color:rgba(91,224,255,.4);background:var(--blue-dim)}
+.lp-fetch-btn:disabled{opacity:.4;cursor:not-allowed}
+.lp-fetching{color:var(--blue);font-size:10px;font-family:var(--fh);font-weight:700;animation:pulse 1s infinite}
+
+/* LIVE RECALC RESULT STRIP — appears below ticker header after fetch+recalc */
+.live-recalc-strip{display:none;padding:10px 20px;background:var(--bg);border-top:1px solid var(--border);gap:16px;flex-wrap:wrap;align-items:center}
+.live-recalc-strip.show{display:flex}
+.lrs-chip{display:flex;flex-direction:column;gap:2px;min-width:110px}
+.lrs-chip-label{font-family:var(--fh);font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim)}
+.lrs-chip-value{font-size:14px;font-weight:600}
+.lrs-note{font-size:10px;color:var(--text-dim);margin-left:auto;align-self:center}
+.lrs-recalc-btn{font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 12px;border-radius:2px;cursor:pointer;border:1px solid rgba(45,255,122,.3);background:var(--green-dim);color:var(--green);transition:all .2s;white-space:nowrap;align-self:center}
+.lrs-recalc-btn:hover{background:var(--green);color:#0b1a0e}
+.lrs-recalc-btn:disabled{opacity:.4;cursor:not-allowed}
 
 /* RUNS PANEL */
 .runs-panel{display:none;border-top:1px solid var(--border);background:var(--bg2)}
@@ -313,7 +339,7 @@ h1 span{color:var(--green)}
     <h1>PLM <span>Ticker Watcher</span></h1>
   </div>
   <div class="header-right">
-    <button class="btn btn-green" onclick="loadAll()">↻ &nbsp;Refresh</button>
+    <button class="btn btn-green" onclick="loadAll()">↻ &nbsp;Refresh DB</button>
     <button class="btn btn-ghost" onclick="openCalculator()">＋ &nbsp;New Valuation</button>
   </div>
 </header>
@@ -528,6 +554,162 @@ let activeCountry= 'all';  // 'all' | 'in' | 'us' | 'other'
 let pendingDeleteId     = null;
 let pendingDeleteTicker = null;
 
+// ── Per-ticker on-demand live price fetch ────────────────
+// livePriceCache: { TICKER: { price, change_pct, fetched_at } }
+const livePriceCache = {};
+const CACHE_TTL = 5 * 60 * 1000; // 5 min
+
+async function fetchTickerLivePrice(ticker, uid, e){
+  if(e) e.stopPropagation();
+  const btn      = document.getElementById('lp-btn-'   + uid);
+  const priceEl  = document.getElementById('lp-price-' + uid);
+  const chgEl    = document.getElementById('lp-chg-'   + uid);
+
+  // If cached and fresh, just render — no API call
+  const cached = livePriceCache[ticker];
+  if(cached && (Date.now() - cached.fetched_at < CACHE_TTL)){
+    renderLivePrice(ticker, uid, cached);
+    return;
+  }
+
+  // Show spinner
+  if(btn) { btn.disabled = true; btn.textContent = '⟳ fetching…'; }
+
+  let live = null;
+  try {
+    const resp = await fetch(apiBase() + '/api/prices?tickers=' + encodeURIComponent(ticker),
+      {signal: AbortSignal.timeout(20000)});
+    if(resp.ok){
+      const d = await resp.json();
+      live = d[ticker] || null;
+      if(!live) console.warn('[prices] ticker key missing from response. Keys:', Object.keys(d), '| Requested:', ticker);
+    } else {
+      console.error('[prices] API returned HTTP', resp.status);
+    }
+  } catch(err){
+    console.error('[prices] fetch error:', err);
+  }
+
+  if(live && live.price){
+    livePriceCache[ticker] = {...live, fetched_at: Date.now()};
+    renderLivePrice(ticker, uid, livePriceCache[ticker]);
+  } else {
+    if(btn) { btn.disabled = false; btn.textContent = '📡 Get Price'; }
+    if(priceEl) priceEl.innerHTML = '<span style="font-size:12px;color:var(--text-dim)">unavailable</span>'
+      + ' <button class="lp-fetch-btn" onclick="fetchTickerLivePrice(\''+ticker+'\',\''+uid+'\',event)">↻ retry</button>';
+    if(chgEl) chgEl.textContent = 'Could not fetch — click retry';
+  }
+}
+
+function renderLivePrice(ticker, uid, live){
+  const priceEl  = document.getElementById('lp-price-' + uid);
+  const chgEl    = document.getElementById('lp-chg-'   + uid);
+
+  const t = allTickers.find(x => x.ticker === ticker);
+  if(!priceEl || !t) return;
+
+  const chgPct   = live.change_pct * 100;
+  const chgSign  = chgPct >= 0 ? '+' : '';
+  const chgCls   = chgPct > 0 ? 'lp-up' : chgPct < 0 ? 'lp-dn' : 'lp-flat';
+  const dotCls   = chgPct > 0 ? 'green' : chgPct < 0 ? 'red' : 'amber';
+
+  priceEl.innerHTML =
+    `<span style="font-size:17px;font-weight:600;color:var(--text-bright)">${fmt(live.price)}</span>`
+    + `<span class="live-price-badge ${chgCls}" style="margin-left:6px">${chgSign}${chgPct.toFixed(2)}%</span>`
+    + `<button class="lp-fetch-btn" style="margin-left:6px"
+         onclick="fetchTickerLivePrice('${ticker}','${uid}',event)" title="Refresh">↻</button>`;
+
+  if(chgEl) chgEl.innerHTML =
+    `<span class="live-dot ${dotCls}"></span>Live · ${new Date().toLocaleTimeString()}
+     &nbsp;·&nbsp; Saved: ${fmt(t.latest_price)}`;
+
+  // Update live upsides in DCF / Growth sub-labels
+  const dcfEl = document.getElementById('lp-dcf-upside-' + uid);
+  const grwEl = document.getElementById('lp-grw-upside-' + uid);
+
+  if(t.dcf_iv && dcfEl){
+    const up = ((+t.dcf_iv - live.price) / live.price * 100);
+    dcfEl.innerHTML = `<span style="color:${upsideColor(up)};font-weight:600">${up>=0?'+':''}${up.toFixed(1)}% live</span>`
+      + ` <span style="color:var(--text-dim)">(DCF IV: ${fmt(t.dcf_iv)})</span>`;
+  }
+  if(t.growth_iv && grwEl){
+    const up = ((+t.growth_iv - live.price) / live.price * 100);
+    grwEl.innerHTML = `<span style="color:${upsideColor(up)};font-weight:600">${up>=0?'+':''}${up.toFixed(1)}% live</span>`
+      + ` <span style="color:var(--text-dim)">(Growth IV: ${fmt(t.growth_iv)})</span>`;
+  }
+
+  // Show the live-recalc strip
+  showLiveRecalcStrip(ticker, uid, live.price);
+}
+
+// ── Live Recalc Strip ────────────────────────────────────
+// Uses last saved fair values + live price to compute updated upside/verdict
+// No API call — pure client-side maths from already-loaded data
+function showLiveRecalcStrip(ticker, uid, livePrice){
+  const strip = document.getElementById('lrs-' + uid);
+  if(!strip) return;
+
+  const t = allTickers.find(x => x.ticker === ticker);
+  if(!t){ strip.classList.remove('show'); return; }
+
+  const dcfIV     = t.dcf_iv    ? +t.dcf_iv    : null;
+  const grwIV     = t.growth_iv ? +t.growth_iv : null;
+  const blended   = (dcfIV && grwIV) ? (dcfIV + grwIV) / 2 : (dcfIV || grwIV);
+
+  function upside(iv){ return iv ? ((iv - livePrice) / livePrice * 100) : null; }
+  function verdictFromUpside(u){
+    if(u == null) return null;
+    return u >= 30 ? 'STRONG BUY' : u >= 10 ? 'BUY' : u >= -10 ? 'HOLD' : u >= -25 ? 'SELL' : 'STRONG SELL';
+  }
+
+  const dcfUp   = upside(dcfIV);
+  const grwUp   = upside(grwIV);
+  const bldUp   = upside(blended);
+  const verdict = verdictFromUpside(bldUp);
+
+  function chip(label, iv, up){
+    if(!iv) return '';
+    const col   = upsideColor(up);
+    const sign  = up >= 0 ? '+' : '';
+    return `<div class="lrs-chip">
+      <div class="lrs-chip-label">${label}</div>
+      <div class="lrs-chip-value" style="color:var(--text-bright)">${fmt(iv)}</div>
+      <div style="font-size:10px;font-weight:600;color:${col}">${sign}${up.toFixed(1)}% live upside</div>
+    </div>`;
+  }
+
+  const verdBadge = verdict
+    ? `<div class="lrs-chip">
+        <div class="lrs-chip-label">Live Verdict</div>
+        <div style="margin-top:3px"><span class="verdict-badge ${verdictClass(verdict)}">${verdict}</span></div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:2px">vs live ${fmt(livePrice)}</div>
+       </div>`
+    : '';
+
+  const mosBld = blended ? fmt(blended * 0.80) : '—';
+  const mosChip = blended ? `<div class="lrs-chip">
+    <div class="lrs-chip-label">MOS 20% Buy ≤</div>
+    <div class="lrs-chip-value" style="color:var(--amber)">${mosBld}</div>
+    <div style="font-size:10px;color:${livePrice <= blended*0.80 ? 'var(--green)' : 'var(--text-dim)'}">
+      ${livePrice <= blended*0.80 ? '✅ In buy zone' : '❌ Above MOS 20%'}
+    </div>
+  </div>` : '';
+
+  strip.innerHTML =
+    `<div style="font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--blue);white-space:nowrap">⟳ Live Recalc</div>`
+    + chip('DCF Fair Value', dcfIV, dcfUp)
+    + chip('Growth Fair Value', grwIV, grwUp)
+    + chip('Blended IV', blended, bldUp)
+    + verdBadge
+    + mosChip
+    + `<div class="lrs-note">Based on last saved inputs · Live @ ${fmt(livePrice)}</div>`;
+
+  strip.classList.add('show');
+}
+
+// ── Stub — no longer used (on-demand only) ───────────────
+async function fetchAllLivePrices(){ /* replaced by per-ticker fetchTickerLivePrice */ }
+
 // ── Detect country from exchange / currency ──
 function detectCountry(t){
   const ex  = (t.exchange     ||'').toLowerCase();
@@ -622,8 +804,8 @@ async function loadAll(){
 
     updateStats();
     renderCards();
-    setStatus('status-ok', '✓ Loaded ' + allTickers.length + ' ticker(s) from database');
-    setTimeout(()=>{ document.getElementById('statusBar').style.display='none'; }, 3000);
+    setStatus('status-ok', '✓ Loaded ' + allTickers.length + ' ticker(s) — click 📡 Get Price on any ticker for live data.');
+    setTimeout(()=>{ document.getElementById('statusBar').style.display='none'; }, 5000);
   } catch(e) {
     setStatus('status-err', '✗ Could not connect: ' + e.message + ' — check API URL and make sure uvicorn is running.');
     document.getElementById('connStatus').textContent = '✗ Not connected';
@@ -717,10 +899,12 @@ function renderCards(){
 }
 
 function tickerCardHTML(t, gridId){
-  const dcfColor    = upsideColor(t.dcf_upside);
-  const growthColor = upsideColor(t.growth_upside);
-  const blended     = (t.dcf_iv && t.growth_iv) ? ((+t.dcf_iv + +t.growth_iv)/2) : (t.dcf_iv || t.growth_iv);
-  const uid = t.ticker + '__' + (gridId||'all');  // unique per grid
+  const blended = (t.dcf_iv && t.growth_iv) ? ((+t.dcf_iv + +t.growth_iv)/2) : (t.dcf_iv || t.growth_iv);
+  const uid = t.ticker + '__' + (gridId||'all');
+
+  // Saved upside sub-labels (always shown from last saved run)
+  const dcfUpSaved  = t.dcf_iv    ? 'Saved: '+(t.dcf_upside>=0?'+':'')+fmt(t.dcf_upside)+'% upside'  : 'Not run';
+  const grwUpSaved  = t.growth_iv ? 'Saved: '+(t.growth_upside>=0?'+':'')+fmt(t.growth_upside)+'% upside' : 'Not run';
 
   return `
   <div class="ticker-card" id="card-${uid}">
@@ -732,32 +916,39 @@ function tickerCardHTML(t, gridId){
         <div class="th-exchange">${t.exchange||''} &nbsp;·&nbsp; ${t.currency_unit||''}</div>
       </div>
 
-      <div class="th-col">
-        <div class="th-col-label">Market Price</div>
-        <div class="th-col-value">${fmt(t.latest_price)}</div>
-        <div class="th-col-sub">as of ${fmtDate(t.last_updated)}</div>
+      <!-- LIVE PRICE COLUMN — on-demand fetch only -->
+      <div class="th-col" id="lp-col-${uid}" onclick="event.stopPropagation()">
+        <div class="th-col-label">Live Price</div>
+        <div class="th-col-value" id="lp-price-${uid}" style="display:flex;align-items:center;gap:8px">
+          <button class="lp-fetch-btn" id="lp-btn-${uid}"
+            onclick="fetchTickerLivePrice('${t.ticker}','${uid}',event)">📡 Get Price</button>
+        </div>
+        <div class="th-col-sub" id="lp-chg-${uid}" style="font-size:10px;color:var(--text-dim)">
+          Saved: ${fmt(t.latest_price)} · ${fmtDate(t.last_updated)}
+        </div>
       </div>
 
+      <!-- DCF fair value (saved) -->
       <div class="th-col">
         <div class="th-col-label">DCF Fair Value</div>
         <div class="th-col-value" style="color:var(--green)">${t.dcf_iv ? fmt(t.dcf_iv) : '—'}</div>
-        <div class="th-col-sub" style="color:${dcfColor}">
-          ${t.dcf_upside != null ? (t.dcf_upside>=0?'+':'')+fmt(t.dcf_upside)+'% upside' : 'Not run'}
-        </div>
+        <div class="th-col-sub" id="lp-dcf-upside-${uid}" style="color:var(--text-dim);font-size:10px">${dcfUpSaved}</div>
       </div>
 
+      <!-- Growth fair value (saved) -->
       <div class="th-col">
         <div class="th-col-label">Growth Fair Value</div>
         <div class="th-col-value" style="color:var(--amber)">${t.growth_iv ? fmt(t.growth_iv) : '—'}</div>
-        <div class="th-col-sub" style="color:${growthColor}">
-          ${t.growth_upside != null ? (t.growth_upside>=0?'+':'')+fmt(t.growth_upside)+'% upside' : 'Not run'}
-        </div>
+        <div class="th-col-sub" id="lp-grw-upside-${uid}" style="color:var(--text-dim);font-size:10px">${grwUpSaved}</div>
       </div>
 
+      <!-- Blended IV + saved verdict -->
       <div class="th-col">
         <div class="th-col-label">Blended IV</div>
         <div class="th-col-value" style="color:var(--text-bright)">${blended ? fmt(blended) : '—'}</div>
-        <div class="th-col-sub">${t.dcf_verdict ? '<span class="verdict-badge '+verdictClass(t.dcf_verdict)+'">'+t.dcf_verdict+'</span>' : ''}</div>
+        <div class="th-col-sub" id="lp-verdict-${uid}">
+          ${t.dcf_verdict ? '<span class="verdict-badge '+verdictClass(t.dcf_verdict)+'">'+t.dcf_verdict+'</span>' : ''}
+        </div>
       </div>
 
       <div style="text-align:center">
@@ -766,6 +957,9 @@ function tickerCardHTML(t, gridId){
 
       <div class="expand-icon" id="icon-${uid}">▾</div>
     </div>
+
+    <!-- LIVE RECALC RESULT STRIP — hidden until user fetches price + recalcs -->
+    <div class="live-recalc-strip" id="lrs-${uid}"></div>
 
     <div class="runs-panel" id="runs-${uid}">
       <div class="runs-loading" id="runs-loading-${uid}">Loading runs…</div>

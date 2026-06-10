@@ -6,7 +6,7 @@ Endpoints:
   GET    /api/valuations/{ticker}          Latest valuation for a ticker
   GET    /api/valuations/{ticker}/history  All runs for a ticker
   GET    /api/valuations/detail/{id}       Full detail incl. comments
-  DELETE /api/valuations/{id}              Delete a run (cascades)
+  DELETE /api/valuations/{id}             Delete a run (cascades)
 
 Install:
   pip install -r requirements.txt
@@ -39,10 +39,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import logging as _logging_setup
+_logging_setup.basicConfig(
+    level=_logging_setup.INFO,
+    format="%(asctime)s  %(levelname)s  %(name)s  %(message)s",
+    datefmt="%H:%M:%S",
+)
+
 # ── Connection string builder ──────────────────────────────────
-DB_SERVER   = os.getenv("DB_SERVER",   "localhost")
-DB_NAME     = os.getenv("DB_NAME",     "dcf_db")
-DB_USER     = os.getenv("DB_USER",     "")        # blank = Windows Auth
+DB_SERVER      = os.getenv("DB_SERVER",   "localhost")
+DB_NAME        = os.getenv("DB_NAME",     "dcf_db")
+DB_USER        = os.getenv("DB_USER",     "")        # blank = Windows Auth
 DB_PASSWORD    = os.getenv("DB_PASSWORD", "")
 ANTHROPIC_KEY  = os.getenv("ANTHROPIC_API_KEY", "")
 
@@ -194,7 +201,7 @@ def save_valuation(req: SaveValuationRequest):
 
     # Auto-fill MOS / upside if not provided
     for c in req.calculations:
-        if c.upside_pct  is None: c.upside_pct  = _upside(c.intrinsic_value, c.current_price)
+        if c.upside_pct   is None: c.upside_pct   = _upside(c.intrinsic_value, c.current_price)
         if c.mos_10_price is None: c.mos_10_price = _mos(c.intrinsic_value, 0.10)
         if c.mos_20_price is None: c.mos_20_price = _mos(c.intrinsic_value, 0.20)
         if c.mos_25_price is None: c.mos_25_price = _mos(c.intrinsic_value, 0.25)
@@ -369,7 +376,6 @@ def get_detail(input_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
 @app.delete(
     "/api/valuations/ticker/{ticker}",
     status_code=status.HTTP_200_OK,
@@ -394,6 +400,7 @@ def delete_ticker(ticker: str):
     except pyodbc.Error as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.delete(
     "/api/valuations/{input_id}",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -411,8 +418,6 @@ def delete_valuation(input_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
-
 @app.get(
     "/api/valuations",
     summary="All tickers saved — grouped with latest summary per ticker",
@@ -421,7 +426,6 @@ def get_all_tickers():
     try:
         with get_conn() as conn:
             cur = conn.cursor()
-            # All distinct tickers with their latest price + both model IVs
             cur.execute("""
                 WITH ranked AS (
                     SELECT
@@ -490,6 +494,7 @@ def get_ticker_runs(ticker: str):
     except pyodbc.Error as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/")
 def root():
     return {"status": "DCF Valuation API is running", "docs": "/docs", "health": "/api/health"}
@@ -501,10 +506,10 @@ def root():
 # request server-side and streams the response back.
 
 class AnthropicProxyRequest(BaseModel):
-    model:     str            = "claude-sonnet-4-5"
-    max_tokens: int           = 1500
-    messages:  list[dict]
-    tools:     list[dict]     = Field(default_factory=list)
+    model:      str       = "claude-haiku-4-5"   # default to Haiku — 20x cheaper than Sonnet
+    max_tokens: int       = 800
+    messages:   list[dict]
+    tools:      list[dict] = Field(default_factory=list)
 
 
 @app.post("/api/ai/messages", summary="Proxy to Anthropic API (avoids browser CORS)")
@@ -521,24 +526,23 @@ async def anthropic_proxy(req: AnthropicProxyRequest):
 
     payload = {
         "model":      req.model,
-        "max_tokens": min(req.max_tokens, 1024),   # hard cap — never exceed 1024 output tokens
+        "max_tokens": min(req.max_tokens, 900),   # hard cap — 900 output tokens max
         "messages":   req.messages,
     }
 
     if has_web_search:
-        # Limit web search results to reduce input tokens
         payload["tools"] = [
             {
                 "type": "web_search_20250305",
                 "name": "web_search",
-                "max_uses": 2,               # max 2 searches per call
+                "max_uses": 1,             # was 2 — 1 search is enough, saves ~50% web search cost
             }
         ]
-        # Truncate the user message to 1500 chars to keep input tokens low
+        # Aggressively truncate prompt — web search calls are the most expensive
         if payload["messages"] and payload["messages"][-1].get("role") == "user":
             content = payload["messages"][-1].get("content", "")
-            if isinstance(content, str) and len(content) > 1500:
-                payload["messages"][-1]["content"] = content[:1500]
+            if isinstance(content, str) and len(content) > 800:
+                payload["messages"][-1]["content"] = content[:800]
     elif req.tools:
         payload["tools"] = req.tools
 
@@ -560,6 +564,166 @@ async def anthropic_proxy(req: AnthropicProxyRequest):
             raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
         except httpx.RequestError as e:
             raise HTTPException(status_code=502, detail=f"Could not reach Anthropic: {str(e)}")
+
+
+# ── Live prices ────────────────────────────────────────────────────────────
+# Uses yfinance as primary source — it handles Yahoo Finance's auth flow
+# internally and is actively maintained against Yahoo API changes.
+# Falls back to Stooq CSV for anything yfinance can't resolve (e.g. some
+# Indian small-caps not on Yahoo).
+#
+# Install: pip install yfinance
+# Add to requirements.txt: yfinance>=0.2.40
+
+import time as _time
+from concurrent.futures import ThreadPoolExecutor
+
+_price_executor = ThreadPoolExecutor(max_workers=4)
+
+
+def _yfinance_quote(ticker_clean: str) -> dict | None:
+    """
+    Fetch a single ticker via yfinance (synchronous — runs in thread pool).
+    Tries bare symbol first, then .NS (NSE India), then .BO (BSE India).
+    Returns {price, change, change_pct} or None on failure.
+    """
+    try:
+        import yfinance as yf
+    except ImportError:
+        print("[prices] yfinance not installed — run: pip install yfinance", flush=True)
+        return None
+
+    # Candidate suffixes: bare first, then Indian exchange suffixes
+    candidates = [ticker_clean, ticker_clean + ".NS", ticker_clean + ".BO"]
+
+    for sym in candidates:
+        try:
+            t    = yf.Ticker(sym)
+            info = t.fast_info          # lightweight fetch — no full scrape
+            px   = getattr(info, "last_price", None)
+            if not px:
+                continue
+
+            prev = getattr(info, "previous_close", px)
+            chg  = round(float(px) - float(prev), 4)
+            chgp = round(chg / float(prev), 6) if prev else 0.0
+            print(f"[prices] yfinance {sym} → {px}", flush=True)
+            return {
+                "price":      round(float(px), 4),
+                "change":     chg,
+                "change_pct": chgp,
+            }
+        except Exception as exc:
+            print(f"[prices] yfinance {sym} FAILED: {exc}", flush=True)
+            continue
+
+    return None
+
+
+async def _stooq_quote(client: httpx.AsyncClient, ticker: str) -> dict | None:
+    """
+    Stooq CSV fallback. Tries: ticker → ticker.us → ticker.in (NSE).
+    Useful for Indian small-caps that Yahoo doesn't carry.
+    """
+    base = ticker.replace(".NS", "").replace(".BO", "").lower()
+    for sym in [base, f"{base}.us", f"{base}.in"]:
+        url = f"https://stooq.com/q/l/?s={sym}&f=sd2t2ohlcvn&h&e=csv"
+        try:
+            r = await client.get(url, timeout=10, follow_redirects=True)
+            print(f"[prices] stooq {sym} → {r.status_code}", flush=True)
+            if r.status_code != 200:
+                continue
+            lines = r.text.strip().splitlines()
+            if len(lines) < 2:
+                continue
+            parts = lines[1].split(",")
+            if len(parts) < 7:
+                continue
+            close_s = parts[6].strip()
+            open_s  = parts[3].strip()
+            if not close_s or close_s == "N/D":
+                continue
+            close = float(close_s)
+            open_ = float(open_s) if open_s and open_s != "N/D" else close
+            print(f"[prices] stooq {sym} → {close}", flush=True)
+            return {
+                "price":      round(close, 4),
+                "change":     round(close - open_, 4),
+                "change_pct": round((close - open_) / open_, 6) if open_ else 0.0,
+            }
+        except Exception as exc:
+            print(f"[prices] stooq {sym} FAILED: {exc}", flush=True)
+
+    return None
+
+
+@app.get("/api/prices", summary="Fetch live prices — yfinance + Stooq fallback")
+async def get_live_prices(tickers: str):
+    """
+    tickers = comma-separated list, e.g. TSLA,AAPL,SAATVIKGL
+    Returns { "TSLA": { "price": 245.3, "change": 1.2, "change_pct": 0.0049 } }
+    Watch uvicorn console for [prices] lines to diagnose any failures.
+    """
+    import asyncio
+
+    ticker_list = [
+        t.strip().upper().replace(".NS", "").replace(".BO", "")
+        for t in tickers.split(",") if t.strip()
+    ]
+    if not ticker_list:
+        raise HTTPException(status_code=400, detail="No tickers provided")
+
+    print(f"[prices] ── request: {ticker_list}", flush=True)
+    result: dict = {}
+
+    loop = asyncio.get_event_loop()
+
+    # ── Pass 1: yfinance (thread pool — library is synchronous) ───────────
+    tasks = {
+        ticker: loop.run_in_executor(_price_executor, _yfinance_quote, ticker)
+        for ticker in ticker_list
+    }
+    for ticker, coro in tasks.items():
+        try:
+            data = await coro
+            if data:
+                result[ticker] = data
+        except Exception as exc:
+            print(f"[prices] yfinance executor error {ticker}: {exc}", flush=True)
+
+    # ── Pass 2: Stooq CSV for anything yfinance missed ────────────────────
+    still_missing = [t for t in ticker_list if t not in result]
+    if still_missing:
+        print(f"[prices] stooq fallback for: {still_missing}", flush=True)
+        async with httpx.AsyncClient(timeout=15) as client:
+            for ticker in still_missing:
+                data = await _stooq_quote(client, ticker)
+                if data:
+                    result[ticker] = data
+
+    print(f"[prices] ── final: {result}", flush=True)
+    return result
+
+
+
+@app.get("/api/price-hint", summary="Quick yfinance price for autofill — avoids AI web-search cost")
+async def price_hint(ticker: str):
+    """
+    Returns the current price via yfinance (free).
+    The autofill prompt embeds this so Claude skips web-searching for price,
+    cutting the most expensive part of Call 1.
+    """
+    import asyncio
+    loop = asyncio.get_event_loop()
+    t = ticker.strip().upper().replace(".NS","").replace(".BO","")
+    try:
+        data = await loop.run_in_executor(_price_executor, _yfinance_quote, t)
+        if data and data.get("price"):
+            return {"ticker": t, "price": data["price"], "source": "yfinance"}
+    except Exception:
+        pass
+    return {"ticker": t, "price": None, "source": "unavailable"}
+
 
 @app.get("/api/health", summary="Health check")
 def health():

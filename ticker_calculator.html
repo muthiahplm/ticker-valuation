@@ -914,7 +914,7 @@ async function autofillWithAI(){
     const resp = await fetch(apiBase+'/api/ai/messages',{
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:'claude-sonnet-4-5', max_tokens:maxTok,
+        model:'claude-haiku-4-5', max_tokens:maxTok,
         messages:[{role:'user', content: promptStr}]
       })
     });
@@ -965,56 +965,97 @@ async function autofillWithAI(){
   resetAll();
 
   try {
-    // ══ CALL 1: All financials + live price via Claude web_search ══
-    setStatus('ai-loading','[1/2] Fetching live price and financials for '+label+'...');
+    const apiBase = (document.getElementById('apiUrl').value || 'http://localhost:8000').replace(/\/$/,'');
 
-    const p1 = 'Search web for current price of "' + ticker + '". Return ONLY JSON, no markdown: ' +
-      '{"co":"Name","ex":"Exchange","cur":"USD mm","px":0,"sh":0,"nd":0,"wc":0.10,"rv":0,"by":2024,' +
+    // ══ PRE-FETCH: Get live price free via yfinance (no AI tokens) ══
+    setStatus('ai-loading','[1/2] Fetching live price for '+label+'...');
+    let priceHint = null;
+    try {
+      const pr = await fetch(apiBase+'/api/price-hint?ticker='+encodeURIComponent(ticker),
+        {signal: AbortSignal.timeout(8000)});
+      if(pr.ok){ const pd = await pr.json(); if(pd.price) priceHint = pd.price; }
+    } catch(e){ /* silent — AI will search if needed */ }
+
+    // ══ CALL 1: Financials — Haiku model, embed price hint to skip web search ══
+    // If we already have the price, tell the AI so it doesn't web-search for it
+    // This alone cuts ~40% of Call 1 tokens
+    setStatus('ai-loading','[1/2] Fetching financials for '+label+(priceHint?' (price: '+priceHint.toFixed(2)+')…':'…'));
+
+    const priceInstruction = priceHint
+      ? 'Current price is '+priceHint+' — use this, no need to search for price. Search only for financials.'
+      : 'Search for current price and financials.';
+
+    const p1 = priceInstruction+' For "'+ticker+'" return ONLY JSON no markdown: ' +
+      '{"co":"Name","ex":"Exchange","cur":"USD mm","px":0,"sh":0,"nd":0,"wc":0.10,"rv":0,"by":2025,' +
       '"g1":0.15,"g2":0.10,"tg":0.04,"m1":0.18,"m5":0.22,"da":0.04,"cx":0.06,"nw":0.02,"tx":0.21,' +
       '"ep":0,"eg1":0.15,"eg2":0.10,"pe":20,"rr":0.10,"dv":0,' +
-      '"h":[["FY2021",0,0.10],["FY2022",0,0.12],["FY2023",0,0.14],["FY2024",0,0.16],["FY2025",0,0.18]]} ' +
-      'px=live price now, co=company, ex=exchange, cur=currency+unit, sh=shares(mm), nd=net debt, ' +
-      'wc=WACC(US:0.08-0.11,India:0.12-0.16), rv=latest annual revenue, by=fiscal year int, ' +
-      'g1=rev growth yr1-2, g2=yr3-5, tg=terminal growth(<wc), m1=EBITDA margin yr1, m5=yr5, ' +
-      'da=DA%, cx=capex%, nw=NWC%, tx=tax rate, ep=TTM EPS, eg1=EPS growth yr1-5, eg2=yr6-10, ' +
-      'pe=terminal PE, rr=required return, dv=dividend/share, h=history[[yr,rev,margin]].';
+      '"h":[["FY2022",0,0.10],["FY2023",0,0.12],["FY2024",0,0.14],["FY2025",0,0.16]]} ' +
+      'co=company,ex=exchange,cur=currency+unit,sh=shares(mm),nd=net debt,' +
+      'wc=WACC(US:0.09,India:0.14),rv=latest revenue,by=fiscal year,' +
+      'g1=rev growth yr1-2,g2=yr3-5,tg=terminal growth,m1=EBITDA margin yr1,m5=yr5,' +
+      'da=DA%,cx=capex%,nw=NWC%,tx=tax,ep=TTM EPS,eg1=EPS gr yr1-5,eg2=yr6-10,' +
+      'pe=terminal PE,rr=required return,dv=dividend/share,h=history[[yr,rev,margin]].';
 
     const o1 = await (async()=>{
-      const apiBase = (document.getElementById('apiUrl').value || 'http://localhost:8000').replace(/\/$/,'');
+      // Use web_search only if no price hint — otherwise skip (saves most of the cost)
+      const useSearch = !priceHint;
+      const body = {
+        model:'claude-haiku-4-5',   // 20x cheaper than Sonnet, handles JSON extraction fine
+        max_tokens: 700,
+        messages:[{role:'user', content: p1}]
+      };
+      if(useSearch) body.tools = [{"type":"web_search_20250305","name":"web_search"}];
+      const resp = await fetch(apiBase+'/api/ai/messages',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+      if(!resp.ok){ const e=await resp.json().catch(()=>({})); throw new Error(e.detail||'HTTP '+resp.status); }
+      const data = await resp.json();
+      if(data.error) throw new Error(data.error.message);
+      const textBlocks = (data.content||[]).filter(c=>c.type==='text').map(c=>c.text||'');
+      if(!textBlocks.length) throw new Error('No text in AI response');
+      return extractJSON(textBlocks[textBlocks.length-1]);
+    })();
+
+    // If AI didn't return a price (because we told it not to search), inject the pre-fetched one
+    if(priceHint && (!o1.px || o1.px === 0)) o1.px = priceHint;
+    applyNumbers(o1);
+    setStatus('ai-loading','[2/2] Generating risks, rationale & quarterly data for '+label+'…');
+
+    // ══ CALL 2: Narrative + Quarterly merged into ONE call (was 2 separate calls) ══
+    // Merging saves an entire API round trip — biggest cost reduction
+    const p2 = 'For stock "'+ticker+'" return ONLY JSON no markdown. Keep all strings under 80 chars. ' +
+      '{"why":["w1","w2","w3"],' +
+      '"risks":[{"s":"HIGH","r":"title","d":"detail"},{"s":"HIGH","r":"title","d":"detail"},' +
+               '{"s":"MED","r":"title","d":"detail"},{"s":"LOW","r":"title","d":"detail"}],' +
+      '"stress":[{"ok":true,"t":"Bull:","b":"detail"},{"ok":false,"t":"Bear:","b":"detail"},' +
+               '{"ok":true,"t":"Outlook:","b":"detail"},{"ok":false,"t":"Risk:","b":"detail"}],' +
+      '"qtr":{"quarters":[{"q":"Q1","rev":0,"rev_growth":0,"gross_margin":0,"ebitda":0,"ebitda_margin":0,"ebitda_growth":0}],' +
+             '"avg_rev_growth":0,"avg_gross_margin":0,"avg_ebitda_margin":0,"avg_ebitda_growth":0,' +
+             '"trend_rev":"stable","trend_margin":"stable","currency":"USD mm","notes":""}} ' +
+      'why=3 growth drivers. s=HIGH/MED/LOW only. ok=boolean. ' +
+      'qtr.quarters=last 5 quarters actual data, rev_growth/ebitda_growth=YoY decimal. ' +
+      'No apostrophes in strings.';
+
+    const o2 = await (async()=>{
       const resp = await fetch(apiBase+'/api/ai/messages',{
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
-          model:'claude-sonnet-4-5', max_tokens:1500,
+          model:'claude-haiku-4-5',
+          max_tokens: 900,
           tools:[{"type":"web_search_20250305","name":"web_search"}],
-          messages:[{role:'user', content: p1}]
+          messages:[{role:'user', content: p2}]
         })
       });
       if(!resp.ok){ const e=await resp.json().catch(()=>({})); throw new Error(e.detail||'HTTP '+resp.status); }
       const data = await resp.json();
       if(data.error) throw new Error(data.error.message);
-      // web_search returns mixed blocks: tool_use, tool_result, text
-      const textBlocks = (data.content || []).filter(c => c.type === 'text').map(c => c.text || '');
-      if(!textBlocks.length) throw new Error('No text in AI response — web search may have failed');
-      const raw = textBlocks[textBlocks.length - 1];
-      return extractJSON(raw);
+      const textBlocks = (data.content||[]).filter(c=>c.type==='text').map(c=>c.text||'');
+      if(!textBlocks.length) throw new Error('No text in AI response');
+      return extractJSON(textBlocks[textBlocks.length-1]);
     })();
 
-    applyNumbers(o1);
-    if(o1.px) setStatus('ai-loading','[1/2] Live price: '+Number(o1.px).toFixed(2)+' — generating analysis...');
-
-    // ══ Step C: Narrative call ══
-    setStatus('ai-loading','[2/2] Generating DCF analysis for '+label+'...');
-    const p2 = 'DCF analyst for "' + ticker + '". Return ONLY JSON no markdown. Max 75 chars per string: ' +
-      '{"why":["w1","w2","w3","w4"],' +
-      '"risks":[{"s":"HIGH","r":"title","d":"detail"},{"s":"HIGH","r":"title","d":"detail"},' +
-               '{"s":"MED","r":"title","d":"detail"},{"s":"MED","r":"title","d":"detail"},' +
-               '{"s":"LOW","r":"title","d":"detail"}],' +
-      '"stress":[{"ok":true,"t":"Bull:","b":"detail"},{"ok":false,"t":"Bear:","b":"detail"},' +
-               '{"ok":true,"t":"Outlook:","b":"detail"},{"ok":false,"t":"Risk:","b":"detail"}]} ' +
-      'why=4 growth drivers. s=HIGH/MED/LOW only. ok=boolean. No apostrophes in strings.';
-
-    const o2 = await aiCall(p2, 1000);
-
+    // Apply narrative
     if(Array.isArray(o2.why) && o2.why.length)
       document.getElementById('whyContent').innerHTML =
         o2.why.map(w=>'<div>\u25B8 &nbsp;'+w+'</div>').join('');
@@ -1031,12 +1072,14 @@ async function autofillWithAI(){
       }).join('');
     }
 
+    // Apply quarterly data (was a separate 3rd API call — now free)
+    if(o2.qtr && Array.isArray(o2.qtr.quarters) && o2.qtr.quarters.length){
+      _qtrData = o2.qtr;
+      renderQuarterlyData(_qtrData);
+    }
+
     calculate();
-    setStatus('ai-ok','\u2713 '+label+' loaded. Fetching quarterly metrics…');
-    // Auto-fetch quarterly data after autofill completes
-    fetchQuarterlyData().then(()=>{
-      setStatus('ai-ok','\u2713 '+label+' loaded with live price + quarterly data. Review inputs then click \u25B6 Recalculate DCF.');
-    });
+    setStatus('ai-ok','\u2713 '+label+' loaded. Review inputs then click \u25B6 Recalculate DCF.');
 
   } catch(e){
     console.error('Autofill error:', e);
@@ -1138,14 +1181,14 @@ async function fetchQuarterlyData(){
   const prompt = 'For "' + currentTicker + '" return ONLY JSON no markdown: ' +
     '{"quarters":[{"q":"Q1FY24","rev":0,"rev_growth":0,"gross_margin":0,"ebitda":0,"ebitda_margin":0,"ebitda_growth":0}],' +
     '"avg_rev_growth":0,"avg_gross_margin":0,"avg_ebitda_margin":0,"avg_ebitda_growth":0,' +
-    '"trend_rev":"stable","trend_margin":"stable","currency":"USD mm","notes":"brief observation"} ' +
-    'Last 5 quarters actual data. rev_growth/ebitda_growth=YoY decimal. Use web search for real numbers.';
+    '"trend_rev":"stable","trend_margin":"stable","currency":"USD mm","notes":""} ' +
+    'Last 5 quarters actual data. rev_growth/ebitda_growth=YoY decimal.';
 
   try {
     const resp = await fetch(apiBase + '/api/ai/messages', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:'claude-sonnet-4-5', max_tokens:1200,
+        model:'claude-haiku-4-5', max_tokens:700,
         tools:[{"type":"web_search_20250305","name":"web_search"}],
         messages:[{role:'user', content: prompt}]
       })

@@ -1,0 +1,128 @@
+2026-06-09 22:30:32  INFO  ============================================================
+2026-06-09 22:30:32  INFO  PLM Ticker Watcher — Daily Recalc  started
+2026-06-09 22:30:32  INFO  DB: localhost / Ticker_Valuation_Db
+2026-06-09 22:30:32  INFO  Found 7 ticker(s) to process
+2026-06-09 22:30:32  INFO  
+── IONQ ──────────────────────
+2026-06-09 22:30:34  INFO    price IONQ → 56.6900
+2026-06-09 22:30:34  INFO    DCF IV=0.03  upside=-99.9%  → STRONG SELL
+2026-06-09 22:30:34  INFO    GRW IV=36.26  upside=-36.0%  → STRONG SELL
+2026-06-09 22:30:34  INFO    IONQ: saved → input_id=12  calc_ids=[18, 19]
+2026-06-09 22:30:34  INFO  
+── NEM ──────────────────────
+2026-06-09 22:30:34  INFO    price NEM → 98.5400
+2026-06-09 22:30:34  INFO    DCF IV=219.56  upside=+122.8%  → STRONG BUY
+2026-06-09 22:30:34  INFO    GRW IV=111.28  upside=+12.9%  → BUY
+2026-06-09 22:30:34  INFO    NEM: saved → input_id=13  calc_ids=[20, 21]
+2026-06-09 22:30:34  INFO  
+── PATH ──────────────────────
+2026-06-09 22:30:35  INFO    price PATH → 10.7500
+2026-06-09 22:30:35  INFO    DCF IV=10.51  upside=-2.2%  → HOLD
+2026-06-09 22:30:35  INFO    GRW IV=14.99  upside=+39.4%  → STRONG BUY
+2026-06-09 22:30:35  INFO    PATH: saved → input_id=14  calc_ids=[22, 23]
+2026-06-09 22:30:35  INFO  
+── PTON ──────────────────────
+2026-06-09 22:30:35  INFO    price PTON → 5.5700
+2026-06-09 22:30:35  INFO    DCF IV=3.06  upside=-45.1%  → STRONG SELL
+2026-06-09 22:30:35  INFO    PTON: saved → input_id=15  calc_ids=[24]
+2026-06-09 22:30:35  INFO  
+── QBTS ──────────────────────
+2026-06-09 22:30:35  INFO    price QBTS → 23.5200
+2026-06-09 22:30:35  INFO    DCF IV=-0.49  upside=-102.1%  → STRONG SELL
+2026-06-09 22:30:35  INFO    GRW IV=9.63  upside=-59.1%  → STRONG SELL
+2026-06-09 22:30:35  INFO    QBTS: saved → input_id=16  calc_ids=[25, 26]
+2026-06-09 22:30:35  INFO  
+── SAATVIKGL ──────────────────────
+2026-06-09 22:30:36  ERROR  HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: SAATVIKGL"}}}
+2026-06-09 22:30:36  ERROR  $SAATVIKGL: possibly delisted; no price data found  (period=1y) (Yahoo error = "No data found, symbol may be delisted")
+2026-06-09 22:30:36  ERROR  $SAATVIKGL: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+2026-06-09 22:30:37  INFO    price SAATVIKGL.NS → 468.4000
+2026-06-09 22:30:37  INFO    DCF IV=85.13  upside=-81.8%  → STRONG SELL
+2026-06-09 22:30:37  INFO    GRW IV=266.33  upside=-43.1%  → STRONG SELL
+2026-06-09 22:30:37  INFO    SAATVIKGL: saved → input_id=17  calc_ids=[27, 28]
+2026-06-09 22:30:37  INFO  
+── ZSCALER ──────────────────────
+2026-06-09 22:30:37  ERROR  HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: ZSCALER"}}}
+2026-06-09 22:30:38  ERROR  $ZSCALER: possibly delisted; no price data found  (period=1y) (Yahoo error = "No data found, symbol may be delisted")
+2026-06-09 22:30:38  ERROR  $ZSCALER: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+2026-06-09 22:30:38  ERROR  $ZSCALER.NS: possibly delisted; no price data found  (period=1y) (Yahoo error = "No data found, symbol may be delisted")
+2026-06-09 22:30:38  ERROR  $ZSCALER.NS: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+2026-06-09 22:30:39  ERROR  $ZSCALER.BO: possibly delisted; no price data found  (period=1y) (Yahoo error = "No data found, symbol may be delisted")
+2026-06-09 22:30:39  ERROR  $ZSCALER.BO: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+2026-06-09 22:30:39  WARNING    could not fetch price for ZSCALER — skipping
+2026-06-09 22:30:39  WARNING    ZSCALER: no price — skipped
+2026-06-09 22:30:39  INFO  
+============================================================
+2026-06-09 22:30:39  INFO  Done.  processed=6  skipped=1  errors=0
+2026-06-09 22:30:39  INFO  Results:
+2026-06-09 22:30:39  INFO    IONQ            price=56.69  DCF 0.03 (-99.9%)  GRW 36.26 (-36.0%)  [STRONG SELL]
+2026-06-09 22:30:39  INFO    NEM             price=98.54  DCF 219.56 (+122.8%)  GRW 111.28 (+12.9%)  [STRONG BUY]
+2026-06-09 22:30:39  INFO    PATH            price=10.75  DCF 10.51 (-2.2%)  GRW 14.99 (+39.4%)  [HOLD]
+2026-06-09 22:30:39  INFO    PTON            price=5.57  DCF 3.06 (-45.1%)  GRW —  [STRONG SELL]
+2026-06-09 22:30:39  INFO    QBTS            price=23.52  DCF -0.49 (-102.1%)  GRW 9.63 (-59.1%)  [STRONG SELL]
+2026-06-09 22:30:39  INFO    SAATVIKGL       price=468.40  DCF 85.13 (-81.8%)  GRW 266.33 (-43.1%)  [STRONG SELL]
+2026-06-09 22:30:39  INFO  Skipped: ZSCALER(price unavailable)
+2026-06-09 22:33:46  INFO  ============================================================
+2026-06-09 22:33:46  INFO  PLM Ticker Watcher — Daily Recalc  started
+2026-06-09 22:33:46  INFO  DB: localhost / Ticker_Valuation_Db
+2026-06-09 22:33:46  INFO  Found 7 ticker(s) to process
+2026-06-09 22:33:46  INFO  
+── IONQ ──────────────────────
+2026-06-09 22:33:48  INFO    price IONQ → 56.6900
+2026-06-09 22:33:48  INFO    DCF IV=0.03  upside=-99.9%  → STRONG SELL
+2026-06-09 22:33:48  INFO    GRW IV=36.26  upside=-36.0%  → STRONG SELL
+2026-06-09 22:33:48  INFO    IONQ: saved → input_id=18  calc_ids=[29, 30]
+2026-06-09 22:33:48  INFO  
+── NEM ──────────────────────
+2026-06-09 22:33:48  INFO    price NEM → 98.5400
+2026-06-09 22:33:48  INFO    DCF IV=219.56  upside=+122.8%  → STRONG BUY
+2026-06-09 22:33:48  INFO    GRW IV=111.28  upside=+12.9%  → BUY
+2026-06-09 22:33:48  INFO    NEM: saved → input_id=19  calc_ids=[31, 32]
+2026-06-09 22:33:48  INFO  
+── PATH ──────────────────────
+2026-06-09 22:33:48  INFO    price PATH → 10.7500
+2026-06-09 22:33:48  INFO    DCF IV=10.51  upside=-2.2%  → HOLD
+2026-06-09 22:33:48  INFO    GRW IV=14.99  upside=+39.4%  → STRONG BUY
+2026-06-09 22:33:48  INFO    PATH: saved → input_id=20  calc_ids=[33, 34]
+2026-06-09 22:33:48  INFO  
+── PTON ──────────────────────
+2026-06-09 22:33:48  INFO    price PTON → 5.5700
+2026-06-09 22:33:48  INFO    DCF IV=3.06  upside=-45.1%  → STRONG SELL
+2026-06-09 22:33:48  INFO    PTON: saved → input_id=21  calc_ids=[35]
+2026-06-09 22:33:48  INFO  
+── QBTS ──────────────────────
+2026-06-09 22:33:48  INFO    price QBTS → 23.5200
+2026-06-09 22:33:48  INFO    DCF IV=-0.49  upside=-102.1%  → STRONG SELL
+2026-06-09 22:33:48  INFO    GRW IV=9.63  upside=-59.1%  → STRONG SELL
+2026-06-09 22:33:48  INFO    QBTS: saved → input_id=22  calc_ids=[36, 37]
+2026-06-09 22:33:48  INFO  
+── SAATVIKGL ──────────────────────
+2026-06-09 22:33:49  ERROR  HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: SAATVIKGL"}}}
+2026-06-09 22:33:49  ERROR  $SAATVIKGL: possibly delisted; no price data found  (period=1y) (Yahoo error = "No data found, symbol may be delisted")
+2026-06-09 22:33:50  ERROR  $SAATVIKGL: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+2026-06-09 22:33:50  INFO    price SAATVIKGL.NS → 468.4000
+2026-06-09 22:33:50  INFO    DCF IV=85.13  upside=-81.8%  → STRONG SELL
+2026-06-09 22:33:50  INFO    GRW IV=266.33  upside=-43.1%  → STRONG SELL
+2026-06-09 22:33:50  INFO    SAATVIKGL: saved → input_id=23  calc_ids=[38, 39]
+2026-06-09 22:33:50  INFO  
+── ZSCALER ──────────────────────
+2026-06-09 22:33:50  ERROR  HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: ZSCALER"}}}
+2026-06-09 22:33:51  ERROR  $ZSCALER: possibly delisted; no price data found  (period=1y) (Yahoo error = "No data found, symbol may be delisted")
+2026-06-09 22:33:51  ERROR  $ZSCALER: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+2026-06-09 22:33:51  ERROR  $ZSCALER.NS: possibly delisted; no price data found  (period=1y) (Yahoo error = "No data found, symbol may be delisted")
+2026-06-09 22:33:52  ERROR  $ZSCALER.NS: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+2026-06-09 22:33:52  ERROR  $ZSCALER.BO: possibly delisted; no price data found  (period=1y) (Yahoo error = "No data found, symbol may be delisted")
+2026-06-09 22:33:52  ERROR  $ZSCALER.BO: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+2026-06-09 22:33:52  WARNING    could not fetch price for ZSCALER — skipping
+2026-06-09 22:33:52  WARNING    ZSCALER: no price — skipped
+2026-06-09 22:33:52  INFO  
+============================================================
+2026-06-09 22:33:52  INFO  Done.  processed=6  skipped=1  errors=0
+2026-06-09 22:33:52  INFO  Results:
+2026-06-09 22:33:52  INFO    IONQ            price=56.69  DCF 0.03 (-99.9%)  GRW 36.26 (-36.0%)  [STRONG SELL]
+2026-06-09 22:33:52  INFO    NEM             price=98.54  DCF 219.56 (+122.8%)  GRW 111.28 (+12.9%)  [STRONG BUY]
+2026-06-09 22:33:52  INFO    PATH            price=10.75  DCF 10.51 (-2.2%)  GRW 14.99 (+39.4%)  [HOLD]
+2026-06-09 22:33:52  INFO    PTON            price=5.57  DCF 3.06 (-45.1%)  GRW —  [STRONG SELL]
+2026-06-09 22:33:52  INFO    QBTS            price=23.52  DCF -0.49 (-102.1%)  GRW 9.63 (-59.1%)  [STRONG SELL]
+2026-06-09 22:33:52  INFO    SAATVIKGL       price=468.40  DCF 85.13 (-81.8%)  GRW 266.33 (-43.1%)  [STRONG SELL]
+2026-06-09 22:33:52  INFO  Skipped: ZSCALER(price unavailable)
