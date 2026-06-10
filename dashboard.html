@@ -7,18 +7,18 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:#0b1a0e; --bg2:#0f2214; --panel:#1a3320; --panel2:#1f3d27;
-  --border:#2a4d33; --border2:rgba(42,77,51,0.5);
-  --green:#2dff7a; --green2:#1adb5f; --green-dim:rgba(45,255,122,0.1);
-  --amber:#ffb830; --amber-dim:rgba(255,184,48,0.1);
-  --red:#ff5c5c; --red-dim:rgba(255,92,92,0.1);
-  --blue:#5be0ff; --blue-dim:rgba(91,224,255,0.1);
-  --text:#c8e6cc; --text-dim:#6a8f72; --text-bright:#e8f5ea;
+  --bg:#f5f7f5; --bg2:#eef1ee; --panel:#ffffff; --panel2:#f0f4f0;
+  --border:#cddacd; --border2:rgba(150,185,150,0.4);
+  --green:#1a9e4a; --green2:#158040; --green-dim:rgba(26,158,74,0.08);
+  --amber:#b87a00; --amber-dim:rgba(184,122,0,0.08);
+  --red:#c0392b; --red-dim:rgba(192,57,43,0.08);
+  --blue:#1565c0; --blue-dim:rgba(21,101,192,0.08);
+  --text:#2d4a2d; --text-dim:#6a8a6a; --text-bright:#1a2e1a;
   --fh:'Syne',sans-serif; --fd:'DM Serif Display',serif; --fm:'DM Mono',monospace;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--fm);font-size:13px;min-height:100vh}
-body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(45,255,122,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(45,255,122,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(26,158,74,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(26,158,74,.04) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
 .wrap{max-width:1200px;margin:0 auto;padding:0 24px 60px;position:relative;z-index:1}
 
 /* HEADER */
@@ -37,8 +37,8 @@ h1 span{color:var(--green)}
 
 /* BUTTONS */
 .btn{font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:8px 18px;border-radius:3px;cursor:pointer;border:none;transition:all .2s;white-space:nowrap}
-.btn-green{background:var(--green);color:#0b1a0e}
-.btn-green:hover{background:var(--green2);box-shadow:0 2px 12px rgba(45,255,122,.3)}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover{background:var(--green2);box-shadow:0 2px 12px rgba(26,158,74,.25)}
 .btn-ghost{background:transparent;color:var(--text-dim);border:1px solid var(--border)}
 .btn-ghost:hover{color:var(--text);border-color:var(--text-dim)}
 .btn-red{background:transparent;color:var(--red);border:1px solid rgba(255,92,92,.3)}
@@ -116,14 +116,21 @@ h1 span{color:var(--green)}
 .lp-fetching{color:var(--blue);font-size:10px;font-family:var(--fh);font-weight:700;animation:pulse 1s infinite}
 
 /* LIVE RECALC RESULT STRIP — appears below ticker header after fetch+recalc */
-.live-recalc-strip{display:none;padding:10px 20px;background:var(--bg);border-top:1px solid var(--border);gap:16px;flex-wrap:wrap;align-items:center}
+.live-recalc-strip{display:none;flex-direction:column;background:var(--bg);border-top:1px solid var(--border)}
 .live-recalc-strip.show{display:flex}
+.lrs-header{display:flex;align-items:center;justify-content:space-between;padding:7px 20px;border-bottom:1px solid var(--border2);cursor:pointer;user-select:none}
+.lrs-header:hover{background:rgba(45,255,122,.03)}
+.lrs-header-label{font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--blue)}
+.lrs-collapse-btn{font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:2px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-dim);transition:all .2s}
+.lrs-collapse-btn:hover{color:var(--red);border-color:rgba(255,92,92,.3)}
+.lrs-body{display:flex;padding:10px 20px;gap:16px;flex-wrap:wrap;align-items:center}
+.lrs-body.collapsed{display:none}
 .lrs-chip{display:flex;flex-direction:column;gap:2px;min-width:110px}
 .lrs-chip-label{font-family:var(--fh);font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim)}
 .lrs-chip-value{font-size:14px;font-weight:600}
 .lrs-note{font-size:10px;color:var(--text-dim);margin-left:auto;align-self:center}
 .lrs-recalc-btn{font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 12px;border-radius:2px;cursor:pointer;border:1px solid rgba(45,255,122,.3);background:var(--green-dim);color:var(--green);transition:all .2s;white-space:nowrap;align-self:center}
-.lrs-recalc-btn:hover{background:var(--green);color:#0b1a0e}
+.lrs-recalc-btn:hover{background:var(--green);color:#fff}
 .lrs-recalc-btn:disabled{opacity:.4;cursor:not-allowed}
 
 /* RUNS PANEL */
@@ -695,16 +702,33 @@ function showLiveRecalcStrip(ticker, uid, livePrice){
     </div>
   </div>` : '';
 
+  // Build strip with collapsible header
+  const bodyId = 'lrs-body-' + uid;
   strip.innerHTML =
-    `<div style="font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--blue);white-space:nowrap">⟳ Live Recalc</div>`
+    `<div class="lrs-header" onclick="toggleLrsBody('${bodyId}',this)" title="Click to collapse">
+       <span class="lrs-header-label">⟳ Live Recalc · ${fmt(livePrice)}</span>
+       <button class="lrs-collapse-btn" onclick="event.stopPropagation();toggleLrsBody('${bodyId}',this.closest('.lrs-header'))">▲ Collapse</button>
+     </div>
+     <div class="lrs-body" id="${bodyId}">`
     + chip('DCF Fair Value', dcfIV, dcfUp)
     + chip('Growth Fair Value', grwIV, grwUp)
     + chip('Blended IV', blended, bldUp)
     + verdBadge
     + mosChip
-    + `<div class="lrs-note">Based on last saved inputs · Live @ ${fmt(livePrice)}</div>`;
+    + `<div class="lrs-note">Based on last saved inputs</div>`
+    + `</div>`;
 
   strip.classList.add('show');
+}
+
+// ── Toggle live recalc strip body ───────────────────────
+function toggleLrsBody(bodyId, headerEl){
+  const body = document.getElementById(bodyId);
+  if(!body) return;
+  const collapsed = body.classList.toggle('collapsed');
+  // Update the collapse button text
+  const btn = headerEl ? headerEl.querySelector('.lrs-collapse-btn') : null;
+  if(btn) btn.textContent = collapsed ? '▼ Expand' : '▲ Collapse';
 }
 
 // ── Stub — no longer used (on-demand only) ───────────────

@@ -7,18 +7,18 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:#0b1a0e; --bg2:#0f2214; --panel:#1a3320; --panel2:#1f3d27;
-  --border:#2a4d33; --border2:rgba(42,77,51,0.5);
-  --green:#2dff7a; --green2:#1adb5f; --green-dim:rgba(45,255,122,0.1); --green-glow:rgba(45,255,122,0.25);
-  --amber:#ffb830; --amber-dim:rgba(255,184,48,0.1);
-  --red:#ff5c5c; --red-dim:rgba(255,92,92,0.1);
-  --blue:#5be0ff; --blue-dim:rgba(91,224,255,0.1);
-  --text:#c8e6cc; --text-dim:#6a8f72; --text-bright:#e8f5ea;
+  --bg:#f5f7f5; --bg2:#eef1ee; --panel:#ffffff; --panel2:#f0f4f0;
+  --border:#cddacd; --border2:rgba(150,185,150,0.4);
+  --green:#1a9e4a; --green2:#158040; --green-dim:rgba(26,158,74,0.08); --green-glow:rgba(26,158,74,0.2);
+  --amber:#b87a00; --amber-dim:rgba(184,122,0,0.08);
+  --red:#c0392b; --red-dim:rgba(192,57,43,0.08);
+  --blue:#1565c0; --blue-dim:rgba(21,101,192,0.08);
+  --text:#2d4a2d; --text-dim:#6a8a6a; --text-bright:#1a2e1a;
   --fh:'Syne',sans-serif; --fd:'DM Serif Display',serif; --fm:'DM Mono',monospace;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--fm);font-size:13px;min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(45,255,122,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(45,255,122,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(26,158,74,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(26,158,74,.04) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
 .wrap{max-width:1120px;margin:0 auto;padding:0 24px;position:relative;z-index:1}
 
 /* HEADER */
@@ -40,7 +40,7 @@ h1 .ticker-display{color:var(--green);transition:all .3s}
 #companyInput{background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--text-bright);font-family:var(--fm);font-size:13px;padding:8px 14px;outline:none;flex:1;transition:border-color .2s}
 #companyInput:focus{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-dim)}
 #currencyInput{background:var(--bg2);border:1px solid var(--border);border-radius:3px;color:var(--amber);font-family:var(--fm);font-size:13px;padding:8px 10px;outline:none;width:80px}
-.btn-load{background:var(--green);color:#0b1a0e;border:none;border-radius:3px;font-family:var(--fh);font-size:12px;font-weight:800;letter-spacing:.1em;padding:9px 20px;cursor:pointer;transition:background .15s,box-shadow .2s;white-space:nowrap}
+.btn-load{background:var(--green);color:#fff;border:none;border-radius:3px;font-family:var(--fh);font-size:12px;font-weight:800;letter-spacing:.1em;padding:9px 20px;cursor:pointer;transition:background .15s,box-shadow .2s;white-space:nowrap}
 .btn-load:hover{background:var(--green2);box-shadow:0 2px 16px var(--green-glow)}
 .loading-bar{display:none;font-size:11px;color:var(--green);padding:4px 8px;animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
@@ -139,8 +139,8 @@ tr.tr-ebit td:nth-child(n+2){color:var(--amber)}
 .risk-low{color:var(--blue)}
 
 /* CALC BUTTON */
-.btn-calc{background:var(--green);color:#0b1a0e;border:none;border-radius:4px;font-family:var(--fh);font-size:14px;font-weight:800;letter-spacing:.08em;padding:14px 40px;cursor:pointer;transition:background .15s,transform .1s,box-shadow .2s;display:block;width:100%;margin-top:8px;box-shadow:0 4px 20px var(--green-glow)}
-.btn-calc:hover{background:var(--green2);box-shadow:0 4px 30px rgba(45,255,122,.4);transform:translateY(-1px)}
+.btn-calc{background:var(--green);color:#fff;border:none;border-radius:4px;font-family:var(--fh);font-size:14px;font-weight:800;letter-spacing:.08em;padding:14px 40px;cursor:pointer;transition:background .15s,transform .1s,box-shadow .2s;display:block;width:100%;margin-top:8px;box-shadow:0 2px 10px var(--green-glow)}
+.btn-calc:hover{background:var(--green2);box-shadow:0 4px 20px rgba(26,158,74,.3);transform:translateY(-1px)}
 .btn-calc:active{transform:translateY(0)}
 
 /* SAVE BUTTON */
@@ -180,8 +180,8 @@ tr.tr-ebit td:nth-child(n+2){color:var(--amber)}
 /* MODE TOGGLE */
 .mode-bar{display:flex;gap:0;margin-bottom:0;border:1px solid var(--border);border-radius:5px;overflow:hidden;width:fit-content}
 .mode-btn{font-family:var(--fh);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:10px 28px;cursor:pointer;border:none;background:var(--panel);color:var(--text-dim);transition:all .2s}
-.mode-btn.active-dcf{background:var(--green);color:#0b1a0e}
-.mode-btn.active-growth{background:var(--amber);color:#0b1a0e}
+.mode-btn.active-dcf{background:var(--green);color:#fff}
+.mode-btn.active-growth{background:var(--amber);color:#fff}
 .mode-btn:hover:not(.active-dcf):not(.active-growth){background:var(--panel2);color:var(--text)}
 .growth-only{display:none}
 .dcf-only{display:block}
@@ -914,7 +914,7 @@ async function autofillWithAI(){
     const resp = await fetch(apiBase+'/api/ai/messages',{
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:'claude-haiku-4-5', max_tokens:maxTok,
+        model:'claude-sonnet-4-5', max_tokens:maxTok,
         messages:[{role:'user', content: promptStr}]
       })
     });
@@ -965,97 +965,56 @@ async function autofillWithAI(){
   resetAll();
 
   try {
-    const apiBase = (document.getElementById('apiUrl').value || 'http://localhost:8000').replace(/\/$/,'');
+    // ══ CALL 1: All financials + live price via Claude web_search ══
+    setStatus('ai-loading','[1/2] Fetching live price and financials for '+label+'...');
 
-    // ══ PRE-FETCH: Get live price free via yfinance (no AI tokens) ══
-    setStatus('ai-loading','[1/2] Fetching live price for '+label+'...');
-    let priceHint = null;
-    try {
-      const pr = await fetch(apiBase+'/api/price-hint?ticker='+encodeURIComponent(ticker),
-        {signal: AbortSignal.timeout(8000)});
-      if(pr.ok){ const pd = await pr.json(); if(pd.price) priceHint = pd.price; }
-    } catch(e){ /* silent — AI will search if needed */ }
-
-    // ══ CALL 1: Financials — Haiku model, embed price hint to skip web search ══
-    // If we already have the price, tell the AI so it doesn't web-search for it
-    // This alone cuts ~40% of Call 1 tokens
-    setStatus('ai-loading','[1/2] Fetching financials for '+label+(priceHint?' (price: '+priceHint.toFixed(2)+')…':'…'));
-
-    const priceInstruction = priceHint
-      ? 'Current price is '+priceHint+' — use this, no need to search for price. Search only for financials.'
-      : 'Search for current price and financials.';
-
-    const p1 = priceInstruction+' For "'+ticker+'" return ONLY JSON no markdown: ' +
-      '{"co":"Name","ex":"Exchange","cur":"USD mm","px":0,"sh":0,"nd":0,"wc":0.10,"rv":0,"by":2025,' +
+    const p1 = 'Search web for current price of "' + ticker + '". Return ONLY JSON, no markdown: ' +
+      '{"co":"Name","ex":"Exchange","cur":"USD mm","px":0,"sh":0,"nd":0,"wc":0.10,"rv":0,"by":2024,' +
       '"g1":0.15,"g2":0.10,"tg":0.04,"m1":0.18,"m5":0.22,"da":0.04,"cx":0.06,"nw":0.02,"tx":0.21,' +
       '"ep":0,"eg1":0.15,"eg2":0.10,"pe":20,"rr":0.10,"dv":0,' +
-      '"h":[["FY2022",0,0.10],["FY2023",0,0.12],["FY2024",0,0.14],["FY2025",0,0.16]]} ' +
-      'co=company,ex=exchange,cur=currency+unit,sh=shares(mm),nd=net debt,' +
-      'wc=WACC(US:0.09,India:0.14),rv=latest revenue,by=fiscal year,' +
-      'g1=rev growth yr1-2,g2=yr3-5,tg=terminal growth,m1=EBITDA margin yr1,m5=yr5,' +
-      'da=DA%,cx=capex%,nw=NWC%,tx=tax,ep=TTM EPS,eg1=EPS gr yr1-5,eg2=yr6-10,' +
-      'pe=terminal PE,rr=required return,dv=dividend/share,h=history[[yr,rev,margin]].';
+      '"h":[["FY2021",0,0.10],["FY2022",0,0.12],["FY2023",0,0.14],["FY2024",0,0.16],["FY2025",0,0.18]]} ' +
+      'px=live price now, co=company, ex=exchange, cur=currency+unit, sh=shares(mm), nd=net debt, ' +
+      'wc=WACC(US:0.08-0.11,India:0.12-0.16), rv=latest annual revenue, by=fiscal year int, ' +
+      'g1=rev growth yr1-2, g2=yr3-5, tg=terminal growth(<wc), m1=EBITDA margin yr1, m5=yr5, ' +
+      'da=DA%, cx=capex%, nw=NWC%, tx=tax rate, ep=TTM EPS, eg1=EPS growth yr1-5, eg2=yr6-10, ' +
+      'pe=terminal PE, rr=required return, dv=dividend/share, h=history[[yr,rev,margin]].';
 
     const o1 = await (async()=>{
-      // Use web_search only if no price hint — otherwise skip (saves most of the cost)
-      const useSearch = !priceHint;
-      const body = {
-        model:'claude-haiku-4-5',   // 20x cheaper than Sonnet, handles JSON extraction fine
-        max_tokens: 700,
-        messages:[{role:'user', content: p1}]
-      };
-      if(useSearch) body.tools = [{"type":"web_search_20250305","name":"web_search"}];
-      const resp = await fetch(apiBase+'/api/ai/messages',{
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(body)
-      });
-      if(!resp.ok){ const e=await resp.json().catch(()=>({})); throw new Error(e.detail||'HTTP '+resp.status); }
-      const data = await resp.json();
-      if(data.error) throw new Error(data.error.message);
-      const textBlocks = (data.content||[]).filter(c=>c.type==='text').map(c=>c.text||'');
-      if(!textBlocks.length) throw new Error('No text in AI response');
-      return extractJSON(textBlocks[textBlocks.length-1]);
-    })();
-
-    // If AI didn't return a price (because we told it not to search), inject the pre-fetched one
-    if(priceHint && (!o1.px || o1.px === 0)) o1.px = priceHint;
-    applyNumbers(o1);
-    setStatus('ai-loading','[2/2] Generating risks, rationale & quarterly data for '+label+'…');
-
-    // ══ CALL 2: Narrative + Quarterly merged into ONE call (was 2 separate calls) ══
-    // Merging saves an entire API round trip — biggest cost reduction
-    const p2 = 'For stock "'+ticker+'" return ONLY JSON no markdown. Keep all strings under 80 chars. ' +
-      '{"why":["w1","w2","w3"],' +
-      '"risks":[{"s":"HIGH","r":"title","d":"detail"},{"s":"HIGH","r":"title","d":"detail"},' +
-               '{"s":"MED","r":"title","d":"detail"},{"s":"LOW","r":"title","d":"detail"}],' +
-      '"stress":[{"ok":true,"t":"Bull:","b":"detail"},{"ok":false,"t":"Bear:","b":"detail"},' +
-               '{"ok":true,"t":"Outlook:","b":"detail"},{"ok":false,"t":"Risk:","b":"detail"}],' +
-      '"qtr":{"quarters":[{"q":"Q1","rev":0,"rev_growth":0,"gross_margin":0,"ebitda":0,"ebitda_margin":0,"ebitda_growth":0}],' +
-             '"avg_rev_growth":0,"avg_gross_margin":0,"avg_ebitda_margin":0,"avg_ebitda_growth":0,' +
-             '"trend_rev":"stable","trend_margin":"stable","currency":"USD mm","notes":""}} ' +
-      'why=3 growth drivers. s=HIGH/MED/LOW only. ok=boolean. ' +
-      'qtr.quarters=last 5 quarters actual data, rev_growth/ebitda_growth=YoY decimal. ' +
-      'No apostrophes in strings.';
-
-    const o2 = await (async()=>{
+      const apiBase = (document.getElementById('apiUrl').value || 'http://localhost:8000').replace(/\/$/,'');
       const resp = await fetch(apiBase+'/api/ai/messages',{
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
-          model:'claude-haiku-4-5',
-          max_tokens: 900,
+          model:'claude-sonnet-4-5', max_tokens:1500,
           tools:[{"type":"web_search_20250305","name":"web_search"}],
-          messages:[{role:'user', content: p2}]
+          messages:[{role:'user', content: p1}]
         })
       });
       if(!resp.ok){ const e=await resp.json().catch(()=>({})); throw new Error(e.detail||'HTTP '+resp.status); }
       const data = await resp.json();
       if(data.error) throw new Error(data.error.message);
-      const textBlocks = (data.content||[]).filter(c=>c.type==='text').map(c=>c.text||'');
-      if(!textBlocks.length) throw new Error('No text in AI response');
-      return extractJSON(textBlocks[textBlocks.length-1]);
+      // web_search returns mixed blocks: tool_use, tool_result, text
+      const textBlocks = (data.content || []).filter(c => c.type === 'text').map(c => c.text || '');
+      if(!textBlocks.length) throw new Error('No text in AI response — web search may have failed');
+      const raw = textBlocks[textBlocks.length - 1];
+      return extractJSON(raw);
     })();
 
-    // Apply narrative
+    applyNumbers(o1);
+    if(o1.px) setStatus('ai-loading','[1/2] Live price: '+Number(o1.px).toFixed(2)+' — generating analysis...');
+
+    // ══ Step C: Narrative call ══
+    setStatus('ai-loading','[2/2] Generating DCF analysis for '+label+'...');
+    const p2 = 'DCF analyst for "' + ticker + '". Return ONLY JSON no markdown. Max 75 chars per string: ' +
+      '{"why":["w1","w2","w3","w4"],' +
+      '"risks":[{"s":"HIGH","r":"title","d":"detail"},{"s":"HIGH","r":"title","d":"detail"},' +
+               '{"s":"MED","r":"title","d":"detail"},{"s":"MED","r":"title","d":"detail"},' +
+               '{"s":"LOW","r":"title","d":"detail"}],' +
+      '"stress":[{"ok":true,"t":"Bull:","b":"detail"},{"ok":false,"t":"Bear:","b":"detail"},' +
+               '{"ok":true,"t":"Outlook:","b":"detail"},{"ok":false,"t":"Risk:","b":"detail"}]} ' +
+      'why=4 growth drivers. s=HIGH/MED/LOW only. ok=boolean. No apostrophes in strings.';
+
+    const o2 = await aiCall(p2, 1000);
+
     if(Array.isArray(o2.why) && o2.why.length)
       document.getElementById('whyContent').innerHTML =
         o2.why.map(w=>'<div>\u25B8 &nbsp;'+w+'</div>').join('');
@@ -1072,14 +1031,12 @@ async function autofillWithAI(){
       }).join('');
     }
 
-    // Apply quarterly data (was a separate 3rd API call — now free)
-    if(o2.qtr && Array.isArray(o2.qtr.quarters) && o2.qtr.quarters.length){
-      _qtrData = o2.qtr;
-      renderQuarterlyData(_qtrData);
-    }
-
     calculate();
-    setStatus('ai-ok','\u2713 '+label+' loaded. Review inputs then click \u25B6 Recalculate DCF.');
+    setStatus('ai-ok','\u2713 '+label+' loaded. Fetching quarterly metrics…');
+    // Auto-fetch quarterly data after autofill completes
+    fetchQuarterlyData().then(()=>{
+      setStatus('ai-ok','\u2713 '+label+' loaded with live price + quarterly data. Review inputs then click \u25B6 Recalculate DCF.');
+    });
 
   } catch(e){
     console.error('Autofill error:', e);
@@ -1181,14 +1138,14 @@ async function fetchQuarterlyData(){
   const prompt = 'For "' + currentTicker + '" return ONLY JSON no markdown: ' +
     '{"quarters":[{"q":"Q1FY24","rev":0,"rev_growth":0,"gross_margin":0,"ebitda":0,"ebitda_margin":0,"ebitda_growth":0}],' +
     '"avg_rev_growth":0,"avg_gross_margin":0,"avg_ebitda_margin":0,"avg_ebitda_growth":0,' +
-    '"trend_rev":"stable","trend_margin":"stable","currency":"USD mm","notes":""} ' +
-    'Last 5 quarters actual data. rev_growth/ebitda_growth=YoY decimal.';
+    '"trend_rev":"stable","trend_margin":"stable","currency":"USD mm","notes":"brief observation"} ' +
+    'Last 5 quarters actual data. rev_growth/ebitda_growth=YoY decimal. Use web search for real numbers.';
 
   try {
     const resp = await fetch(apiBase + '/api/ai/messages', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:'claude-haiku-4-5', max_tokens:700,
+        model:'claude-sonnet-4-5', max_tokens:1200,
         tools:[{"type":"web_search_20250305","name":"web_search"}],
         messages:[{role:'user', content: prompt}]
       })
