@@ -914,7 +914,7 @@ async function autofillWithAI(){
     const resp = await fetch(apiBase+'/api/ai/messages',{
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:'claude-sonnet-4-5', max_tokens:maxTok,
+        model:'claude-haiku-4-5', max_tokens:maxTok,
         messages:[{role:'user', content: promptStr}]
       })
     });
@@ -984,7 +984,7 @@ async function autofillWithAI(){
       const resp = await fetch(apiBase+'/api/ai/messages',{
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
-          model:'claude-sonnet-4-5', max_tokens:1500,
+          model:'claude-haiku-4-5', max_tokens:1500,
           tools:[{"type":"web_search_20250305","name":"web_search"}],
           messages:[{role:'user', content: p1}]
         })
@@ -1145,7 +1145,7 @@ async function fetchQuarterlyData(){
     const resp = await fetch(apiBase + '/api/ai/messages', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:'claude-sonnet-4-5', max_tokens:1200,
+        model:'claude-haiku-4-5', max_tokens:1200,
         tools:[{"type":"web_search_20250305","name":"web_search"}],
         messages:[{role:'user', content: prompt}]
       })
