@@ -154,13 +154,14 @@ h1 span{color:var(--green)}
 .run-del-no{background:transparent;border:1px solid var(--border);color:var(--text-dim);font-family:var(--fh);font-size:10px;font-weight:700;padding:3px 8px;border-radius:2px;cursor:pointer}
 .run-del-no:hover{color:var(--text)}
 
-.runs-table{width:100%;border-collapse:collapse}
+.runs-table{width:100%;border-collapse:separate;border-spacing:0 6px}
 .runs-table th{font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);padding:10px 16px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg)}
 .runs-table th:not(:first-child){text-align:right}
-.runs-table td{padding:11px 16px;border-bottom:1px solid var(--border2);vertical-align:middle;font-size:12px}
+.runs-table td{padding:11px 16px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);vertical-align:middle;font-size:12px;background:var(--panel)}
+.runs-table td:first-child{border-left:1px solid var(--border);border-radius:4px 0 0 4px}
+.runs-table td:last-child{border-right:1px solid var(--border);border-radius:0 4px 4px 0}
 .runs-table td:not(:first-child){text-align:right}
-.runs-table tr:last-child td{border-bottom:none}
-.runs-table tr:hover td{background:rgba(45,255,122,.02)}
+.runs-table tr:hover td{background:rgba(45,255,122,.05)}
 
 .date-cell{display:flex;flex-direction:column;gap:2px}
 .date-main{color:var(--text);font-weight:500}
@@ -351,48 +352,20 @@ h1 span{color:var(--green)}
   </div>
 </header>
 
-<!-- API CONFIG -->
-<div class="config-bar">
+
+<!-- API CONFIG (hidden — using defaults) -->
+<div class="config-bar" style="display:none">
   <label>API</label>
-  <input type="text" id="apiUrl" value="http://localhost:8000" placeholder="http://localhost:8000" />
-  <button class="btn btn-ghost" style="padding:6px 14px" onclick="loadAll()">Connect</button>
-  <span style="color:var(--border);margin:0 4px">|</span>
+  <input type="text" id="apiUrl" value="http://localhost:8000" />
+  <button class="btn btn-ghost" onclick="loadAll()">Connect</button>
   <label>Calculator</label>
-  <input type="text" id="calcPath" value="ticker_calculator.html" placeholder="path to ticker_calculator.html" style="width:200px" />
-  <span id="connStatus" style="font-size:11px;color:var(--text-dim);margin-left:4px">Not connected</span>
+  <input type="text" id="calcPath" value="ticker_calculator.html" />
+  <span id="connStatus"></span>
 </div>
 
 <!-- STATUS -->
 <div class="status-bar" id="statusBar"></div>
 
-<!-- STATS -->
-<div class="stats-row" id="statsRow" style="display:none">
-  <div class="stat-card">
-    <div class="stat-label">Total Tickers</div>
-    <div class="stat-value" id="statTickers">—</div>
-    <div class="stat-sub">unique stocks saved</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Total Runs</div>
-    <div class="stat-value" id="statRuns">—</div>
-    <div class="stat-sub">valuation snapshots</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Strong Buy</div>
-    <div class="stat-value" id="statBuy" style="color:var(--green)">—</div>
-    <div class="stat-sub">DCF verdict</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Undervalued</div>
-    <div class="stat-value" id="statUnder" style="color:var(--amber)">—</div>
-    <div class="stat-sub">positive DCF upside</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Overvalued</div>
-    <div class="stat-value" id="statOver" style="color:var(--red)">—</div>
-    <div class="stat-sub">negative DCF upside</div>
-  </div>
-</div>
 
 <!-- TOOLBAR -->
 <div class="toolbar" id="toolbar" style="display:none">
@@ -814,8 +787,7 @@ async function loadAll(){
     allTickers = await resp.json();
 
     document.getElementById('connStatus').textContent = '✓ Connected — ' + allTickers.length + ' ticker(s) loaded';
-    document.getElementById('connStatus').style.color = 'var(--green)';
-    document.getElementById('statsRow').style.display        = 'grid';
+    document.getElementById('connStatus').style.color = 'var(--green)';    
     document.getElementById('toolbar').style.display         = 'flex';
     document.getElementById('emptyState').style.display      = 'none';
     document.getElementById('statusBar').style.display       = 'block';
@@ -842,16 +814,7 @@ async function loadAll(){
 
 // ── Stats ─────────────────────────────────────────────────
 function updateStats(){
-  const totalRuns = allTickers.reduce((s,t) => s + (t.total_runs||0), 0);
-  const strongBuy = allTickers.filter(t => t.dcf_verdict === 'STRONG BUY').length;
-  const underval  = allTickers.filter(t => (t.dcf_upside||0) > 0).length;
-  const overval   = allTickers.filter(t => (t.dcf_upside||0) < 0).length;
-
-  document.getElementById('statTickers').textContent = allTickers.length;
-  document.getElementById('statRuns').textContent    = totalRuns;
-  document.getElementById('statBuy').textContent     = strongBuy;
-  document.getElementById('statUnder').textContent   = underval;
-  document.getElementById('statOver').textContent    = overval;
+  
 
   // Country counts
   const inCount    = allTickers.filter(t => detectCountry(t)==='in').length;
