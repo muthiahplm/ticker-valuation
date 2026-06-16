@@ -965,42 +965,81 @@ async function autofillWithAI(){
   resetAll();
 
   try {
-    // ══ CALL 1: All financials + live price via Claude web_search ══
-    setStatus('ai-loading','[1/2] Fetching live price and financials for '+label+'...');
+    // ══ CALL 1: Pre-fetch price via yfinance (free), then call Claude ══
+    // If /api/price-hint succeeds we embed the known price in the prompt and
+    // skip web search entirely — saving the most expensive part of Call 1.
+    // If it fails we fall back to web search as before.
+    setStatus('ai-loading','[1/2] Fetching live price for '+label+'...');
 
-    const p1 = 'Search web for current price of "' + ticker + '". Return ONLY JSON, no markdown: ' +
-      '{"co":"Name","ex":"Exchange","cur":"USD mm","px":0,"sh":0,"nd":0,"wc":0.10,"rv":0,"by":2024,' +
+    const _apiBase1 = (document.getElementById('apiUrl').value || 'http://localhost:8000').replace(/\/$/,'');
+    let hintPrice = null;
+    try {
+      const hintResp = await fetch(_apiBase1 + '/api/price-hint?ticker=' + encodeURIComponent(ticker),
+        {signal: AbortSignal.timeout(8000)});
+      if(hintResp.ok){
+        const hintData = await hintResp.json();
+        if(hintData.price && hintData.price > 0) hintPrice = hintData.price;
+      }
+    } catch(hintErr){
+      console.warn('[autofill] price-hint failed, falling back to web search:', hintErr.message);
+    }
+
+    const useWebSearch = hintPrice == null;  // only search if yfinance couldn't get price
+
+    // ── Build prompt ──────────────────────────────────────────────────
+    // Both variants are under 800 chars (verified) so api.py truncation never fires.
+    // JSON template uses 4-year history to keep size compact.
+    const _jsonTemplate =
+      '{"co":"","ex":"","cur":"USD mm","px":' + (hintPrice || 0) + ',"sh":0,"nd":0,"wc":0.10,"rv":0,"by":2025,' +
       '"g1":0.15,"g2":0.10,"tg":0.04,"m1":0.18,"m5":0.22,"da":0.04,"cx":0.06,"nw":0.02,"tx":0.21,' +
       '"ep":0,"eg1":0.15,"eg2":0.10,"pe":20,"rr":0.10,"dv":0,' +
-      '"h":[["FY2021",0,0.10],["FY2022",0,0.12],["FY2023",0,0.14],["FY2024",0,0.16],["FY2025",0,0.18]]} ' +
-      'px=live price now, co=company, ex=exchange, cur=currency+unit, sh=shares(mm), nd=net debt, ' +
-      'wc=WACC(US:0.08-0.11,India:0.12-0.16), rv=latest annual revenue, by=fiscal year int, ' +
-      'g1=rev growth yr1-2, g2=yr3-5, tg=terminal growth(<wc), m1=EBITDA margin yr1, m5=yr5, ' +
-      'da=DA%, cx=capex%, nw=NWC%, tx=tax rate, ep=TTM EPS, eg1=EPS growth yr1-5, eg2=yr6-10, ' +
-      'pe=terminal PE, rr=required return, dv=dividend/share, h=history[[yr,rev,margin]].';
+      '"h":[["FY2022",0,0.10],["FY2023",0,0.12],["FY2024",0,0.14],["FY2025",0,0.18]]}. ' +
+      'co=company,ex=exchange,cur=currency+unit,sh=shares(mm),nd=net debt,' +
+      'wc=WACC(US:0.08-0.11,India:0.12-0.16),rv=latest annual revenue,by=fiscal year,' +
+      'g1=rev growth yr1-2,g2=yr3-5,tg=terminal growth(<wc),m1=EBITDA margin yr1,m5=yr5,' +
+      'da=DA%,cx=capex%,nw=NWC%,tx=tax,ep=TTM EPS,eg1=EPS growth yr1-5,eg2=yr6-10,' +
+      'pe=terminal PE,rr=required return,dv=dividend/share,h=[[yr,rev,margin]].';
+
+    const p1 = useWebSearch
+      ? 'Search web for current price and financials of "' + ticker + '". Return ONLY JSON no markdown: ' + _jsonTemplate
+      : 'Return ONLY JSON no markdown for stock "' + ticker + '" (price=' + hintPrice + '): ' + _jsonTemplate;
+
+    if(useWebSearch){
+      setStatus('ai-loading','[1/2] yfinance unavailable — fetching price + financials via web search for '+label+'...');
+    } else {
+      setStatus('ai-loading','[1/2] Price: '+hintPrice.toFixed(2)+' (yfinance) — fetching financials for '+label+'...');
+    }
 
     const o1 = await (async()=>{
       const apiBase = (document.getElementById('apiUrl').value || 'http://localhost:8000').replace(/\/$/,'');
+      const body = {
+        model:'claude-haiku-4-5', max_tokens:1500,
+        messages:[{role:'user', content: p1}]
+      };
+      // Only attach web_search tool when yfinance couldn't supply the price
+      if(useWebSearch) body.tools = [{"type":"web_search_20250305","name":"web_search"}];
+
       const resp = await fetch(apiBase+'/api/ai/messages',{
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          model:'claude-haiku-4-5', max_tokens:1500,
-          tools:[{"type":"web_search_20250305","name":"web_search"}],
-          messages:[{role:'user', content: p1}]
-        })
+        body: JSON.stringify(body)
       });
       if(!resp.ok){ const e=await resp.json().catch(()=>({})); throw new Error(e.detail||'HTTP '+resp.status); }
       const data = await resp.json();
       if(data.error) throw new Error(data.error.message);
-      // web_search returns mixed blocks: tool_use, tool_result, text
+      // web_search returns mixed content blocks; plain call returns text only
       const textBlocks = (data.content || []).filter(c => c.type === 'text').map(c => c.text || '');
-      if(!textBlocks.length) throw new Error('No text in AI response — web search may have failed');
+      if(!textBlocks.length) throw new Error('No text in AI response — check API logs');
       const raw = textBlocks[textBlocks.length - 1];
       return extractJSON(raw);
     })();
 
+    // If Claude didn't return a price (rare with no-search path), backfill from hint
+    if(!o1.px && hintPrice) o1.px = hintPrice;
+
     applyNumbers(o1);
-    if(o1.px) setStatus('ai-loading','[1/2] Live price: '+Number(o1.px).toFixed(2)+' — generating analysis...');
+    const displayPrice = o1.px ? Number(o1.px).toFixed(2) : (hintPrice ? hintPrice.toFixed(2) : '—');
+    const priceSource  = useWebSearch ? 'web search' : 'yfinance';
+    setStatus('ai-loading','[1/2] Price: '+displayPrice+' ('+priceSource+') — generating analysis...');
 
     // ══ Step C: Narrative call ══
     setStatus('ai-loading','[2/2] Generating DCF analysis for '+label+'...');
