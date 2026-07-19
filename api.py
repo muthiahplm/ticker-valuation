@@ -526,7 +526,7 @@ async def anthropic_proxy(req: AnthropicProxyRequest):
 
     payload = {
         "model":      req.model,
-        "max_tokens": min(req.max_tokens, 900),   # hard cap — 900 output tokens max
+        "max_tokens": min(req.max_tokens, 2000),   # allow up to 2000 — web search needs headroom
         "messages":   req.messages,
     }
 
@@ -535,16 +535,14 @@ async def anthropic_proxy(req: AnthropicProxyRequest):
             {
                 "type": "web_search_20250305",
                 "name": "web_search",
-                "max_uses": 1,             # 1 search is enough, saves ~50% web search cost
+                "max_uses": 1,             # was 2 — 1 search is enough, saves ~50% web search cost
             }
         ]
-        # Safety truncation — prompts are designed to fit under 800 chars but guard anyway.
-        # Limit raised to 900 (matches max_tokens hard cap) since prompt templates were
-        # tightened in ticker_calculator.html and no longer hit 800.
+        # Truncate prompt for web search calls — but allow enough for full JSON schema
         if payload["messages"] and payload["messages"][-1].get("role") == "user":
             content = payload["messages"][-1].get("content", "")
-            if isinstance(content, str) and len(content) > 900:
-                payload["messages"][-1]["content"] = content[:900]
+            if isinstance(content, str) and len(content) > 2000:
+                payload["messages"][-1]["content"] = content[:2000]
     elif req.tools:
         payload["tools"] = req.tools
 

@@ -248,6 +248,18 @@ footer{margin-top:48px;padding:24px 0;border-top:1px solid var(--border);display
 .ai-ok{background:var(--green-dim);border:1px solid rgba(45,255,122,.3);color:var(--green)}
 .ai-err{background:var(--red-dim);border:1px solid rgba(255,92,92,.3);color:var(--red)}
 .ai-loading{background:var(--blue-dim);border:1px solid rgba(91,224,255,.3);color:var(--blue);animation:pulse 1s infinite}
+
+/* CASH RUNWAY BANNER */
+.cash-runway-banner{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-radius:6px;margin-top:10px;font-size:12px;line-height:1.6}
+.crb-ok{background:var(--green-dim);border:2px solid rgba(45,255,122,.35)}
+.crb-warn{background:var(--red-dim);border:2px solid rgba(192,57,43,.5);animation:crbPulse 2s ease-in-out 3}
+@keyframes crbPulse{0%,100%{box-shadow:none}50%{box-shadow:0 0 16px rgba(192,57,43,.35)}}
+.crb-icon{font-size:20px;flex-shrink:0;margin-top:1px}
+.crb-body{flex:1}
+.crb-title{font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+.crb-ok .crb-title{color:var(--green)}
+.crb-warn .crb-title{color:var(--red)}
+.crb-detail{color:var(--text);font-size:11px}
 </style>
 </head>
 <body>
@@ -285,6 +297,7 @@ footer{margin-top:48px;padding:24px 0;border-top:1px solid var(--border);display
   <button class="btn-load" onclick="safeAutofill()">⚡ AI Autofill</button>
 </div>
 <div id="aiStatus" class="ai-status"></div>
+<div id="cashRunwayBanner" class="cash-runway-banner" style="display:none"></div>
 
 <!-- LEGEND -->
 <div class="legend">
@@ -476,15 +489,15 @@ footer{margin-top:48px;padding:24px 0;border-top:1px solid var(--border);display
     <div class="panel" style="margin-bottom:18px">
       <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between">
         <span>📊 Last 5 Quarters — Reality Check</span>
-        <button onclick="fetchQuarterlyData()" style="background:var(--green-dim);border:1px solid rgba(45,255,122,.3);color:var(--green);font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.1em;padding:4px 12px;border-radius:3px;cursor:pointer">↻ Refresh</button>
+        <button onclick="fetchQuarterlyData(true)" style="background:var(--green-dim);border:1px solid rgba(45,255,122,.3);color:var(--green);font-family:var(--fh);font-size:10px;font-weight:700;letter-spacing:.1em;padding:4px 12px;border-radius:3px;cursor:pointer">↻ Refresh</button>
       </div>
       <div style="font-size:11px;color:var(--text-dim);margin-bottom:12px;line-height:1.6">
-        Actual quarterly performance vs your model assumptions — use this to validate whether your growth rates and margins are realistic.
+        Actual quarterly performance — fetched first during AI Autofill and used to anchor all DCF assumptions. Click ↻ Refresh to fetch a fresh detailed read.
       </div>
       <div id="qtrLoading" class="qtr-loading" style="display:none">Fetching quarterly data via AI…</div>
       <div id="qtrContent">
         <div style="text-align:center;padding:24px;color:var(--text-dim);font-size:12px">
-          Run AI Autofill or click ↻ Refresh to load quarterly metrics
+          Run AI Autofill to load quarterly actuals — assumptions will be anchored to them automatically.
         </div>
       </div>
       <div id="assumptionChecks" style="margin-top:12px"></div>
@@ -880,6 +893,9 @@ async function autofillWithAI(){
     _safe('valGridGrowth', 'innerHTML', '');
     _dcfIV = 0; _growthIV = 0;
     histData = []; bsData = []; riskData = [];
+    _cashBalance = null; _cashRunwayOk = true;
+    const crb = document.getElementById('cashRunwayBanner');
+    if(crb) crb.style.display = 'none';
     renderHistTable(); renderBsSection(); renderRiskTable();
   }
 
@@ -908,9 +924,10 @@ async function autofillWithAI(){
     return JSON.parse(s);
   }
 
-  // ── API call helper ──
+  // ── API call helper (no web search) ──
   async function aiCall(promptStr, maxTok){
     const apiBase = (document.getElementById('apiUrl').value || 'http://localhost:8000').replace(/\/$/,'');
+    console.log('[autofill] aiCall len='+promptStr.length+' maxTok='+maxTok);
     const resp = await fetch(apiBase+'/api/ai/messages',{
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
@@ -920,9 +937,16 @@ async function autofillWithAI(){
     });
     if(!resp.ok){ const e=await resp.json().catch(()=>({})); throw new Error(e.detail||'HTTP '+resp.status); }
     const data = await resp.json();
+    console.log('[autofill] aiCall stop_reason='+data.stop_reason);
     if(data.error) throw new Error(data.error.message);
-    const raw = data.content.map(c=>c.text||'').join('');
-    return extractJSON(raw);
+    const raw = (data.content||[]).filter(c=>c.type==='text').map(c=>c.text||'').join('');
+    console.log('[autofill] aiCall raw preview:', raw.slice(0,300));
+    try {
+      return extractJSON(raw);
+    } catch(e) {
+      console.error('[autofill] aiCall extractJSON FAILED. Full raw:', raw);
+      throw new Error('No JSON in Call 2/3 response. See console.');
+    }
   }
 
   // ── Apply parsed number object to DOM ──
@@ -964,106 +988,221 @@ async function autofillWithAI(){
 
   resetAll();
 
-  try {
-    // ══ CALL 1: Pre-fetch price via yfinance (free), then call Claude ══
-    // If /api/price-hint succeeds we embed the known price in the prompt and
-    // skip web search entirely — saving the most expensive part of Call 1.
-    // If it fails we fall back to web search as before.
-    setStatus('ai-loading','[1/2] Fetching live price for '+label+'...');
-
-    const _apiBase1 = (document.getElementById('apiUrl').value || 'http://localhost:8000').replace(/\/$/,'');
-    let hintPrice = null;
+  // ── Helper: web-search API call (returns last text block parsed as JSON) ──
+  async function aiSearchCall(promptStr, maxTok){
+    const apiBase = (document.getElementById('apiUrl').value || 'http://localhost:8000').replace(/\/$/,'');
+    console.log('[autofill] aiSearchCall len='+promptStr.length+' maxTok='+maxTok);
+    const resp = await fetch(apiBase+'/api/ai/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-haiku-4-5', max_tokens: maxTok,
+        tools:[{"type":"web_search_20250305","name":"web_search"}],
+        messages:[{role:'user', content: promptStr}]
+      })
+    });
+    if(!resp.ok){ const e=await resp.json().catch(()=>({})); throw new Error(e.detail||'HTTP '+resp.status); }
+    const data = await resp.json();
+    console.log('[autofill] stop_reason='+data.stop_reason+' content_blocks='+JSON.stringify((data.content||[]).map(c=>c.type)));
+    if(data.error) throw new Error(data.error.message);
+    // Collect ALL text from all text-type blocks (web_search may interleave text + tool blocks)
+    const allText = (data.content||[])
+      .filter(c => c.type === 'text')
+      .map(c => c.text || '')
+      .join('\n');
+    console.log('[autofill] allText preview:', allText.slice(0, 400));
+    if(!allText.trim()) throw new Error('No text block in AI response — stop_reason: ' + data.stop_reason);
     try {
-      const hintResp = await fetch(_apiBase1 + '/api/price-hint?ticker=' + encodeURIComponent(ticker),
-        {signal: AbortSignal.timeout(8000)});
-      if(hintResp.ok){
-        const hintData = await hintResp.json();
-        if(hintData.price && hintData.price > 0) hintPrice = hintData.price;
-      }
-    } catch(hintErr){
-      console.warn('[autofill] price-hint failed, falling back to web search:', hintErr.message);
+      return extractJSON(allText);
+    } catch(e) {
+      console.error('[autofill] extractJSON FAILED. Full text was:', allText);
+      throw new Error('No JSON found — model responded with prose. See console for full text.');
     }
+  }
 
-    const useWebSearch = hintPrice == null;  // only search if yfinance couldn't get price
+  try {
+    // ══════════════════════════════════════════════════════════════════
+    // CALL 1 — Live price + raw quarterly actuals + annual history
+    // Goal: fetch ONLY real numbers from the web, NO assumptions yet
+    // ══════════════════════════════════════════════════════════════════
+    setStatus('ai-loading','[1/3] Fetching live price + last 5 quarters of actual data for '+label+'…');
 
-    // ── Build prompt ──────────────────────────────────────────────────
-    // Both variants are under 800 chars (verified) so api.py truncation never fires.
-    // JSON template uses 4-year history to keep size compact.
-    const _jsonTemplate =
-      '{"co":"","ex":"","cur":"USD mm","px":' + (hintPrice || 0) + ',"sh":0,"nd":0,"wc":0.10,"rv":0,"by":2025,' +
-      '"g1":0.15,"g2":0.10,"tg":0.04,"m1":0.18,"m5":0.22,"da":0.04,"cx":0.06,"nw":0.02,"tx":0.21,' +
-      '"ep":0,"eg1":0.15,"eg2":0.10,"pe":20,"rr":0.10,"dv":0,' +
-      '"h":[["FY2022",0,0.10],["FY2023",0,0.12],["FY2024",0,0.14],["FY2025",0,0.18]]}. ' +
-      'co=company,ex=exchange,cur=currency+unit,sh=shares(mm),nd=net debt,' +
-      'wc=WACC(US:0.08-0.11,India:0.12-0.16),rv=latest annual revenue,by=fiscal year,' +
-      'g1=rev growth yr1-2,g2=yr3-5,tg=terminal growth(<wc),m1=EBITDA margin yr1,m5=yr5,' +
-      'da=DA%,cx=capex%,nw=NWC%,tx=tax,ep=TTM EPS,eg1=EPS growth yr1-5,eg2=yr6-10,' +
-      'pe=terminal PE,rr=required return,dv=dividend/share,h=[[yr,rev,margin]].';
+    const p1 =
+      'Search for "' + ticker + '" stock. Return ONLY JSON no markdown: ' +
+      '{"co":"Name","ex":"Exchange","cur":"USD mm","px":0,"sh":0,"nd":0,"cash":0,"tx":0.21,"dv":0,' +
+       '"q":[{"q":"Q1FY25","rev":0,"ebitda":0,"ebitda_margin":0,"rev_yoy":0},' +
+            '{"q":"Q2FY25","rev":0,"ebitda":0,"ebitda_margin":0,"rev_yoy":0},' +
+            '{"q":"Q3FY25","rev":0,"ebitda":0,"ebitda_margin":0,"rev_yoy":0},' +
+            '{"q":"Q4FY25","rev":0,"ebitda":0,"ebitda_margin":0,"rev_yoy":0},' +
+            '{"q":"Q1FY26","rev":0,"ebitda":0,"ebitda_margin":0,"rev_yoy":0}],' +
+       '"h":[["FY2021",0,0.08],["FY2022",0,0.10],["FY2023",0,0.12],["FY2024",0,0.14],["FY2025",0,0.16]],' +
+       '"ep":0,"by":2025}' +
+      ' FIELDS: co=company, ex=exchange(NASDAQ/NYSE/NSE/BSE), cur=currency unit(USD mm/INR Crore),' +
+      ' px=live price, sh=shares(mm), nd=net debt(neg=net cash), cash=cash+equivalents on balance sheet,' +
+      ' tx=tax rate, dv=dividend/share,' +
+      ' q=last 5 quarters newest first: rev=revenue, ebitda=EBITDA, ebitda_margin=decimal, rev_yoy=YoY growth decimal,' +
+      ' h=annual [[yr,rev,ebitda_margin]] oldest first, ep=TTM EPS, by=fiscal year int.' +
+      ' For financial companies (banks/fintech/insurance/REITs): rev=total net revenue or net interest income+non-interest income, ebitda=pre-tax income, ebitda_margin=pre-tax margin decimal.' +
+      ' Use ACTUAL reported numbers only. Do NOT return 0 for any field — estimate from available data if exact figure unavailable.';
 
-    const p1 = useWebSearch
-      ? 'Search web for current price and financials of "' + ticker + '". Return ONLY JSON no markdown: ' + _jsonTemplate
-      : 'Return ONLY JSON no markdown for stock "' + ticker + '" (price=' + hintPrice + '): ' + _jsonTemplate;
+    let o1;
+    try {
+      o1 = await aiSearchCall(p1, 2000);
+    } catch(e) { throw new Error('Call 1 (data fetch) failed: ' + e.message); }
 
-    if(useWebSearch){
-      setStatus('ai-loading','[1/2] yfinance unavailable — fetching price + financials via web search for '+label+'...');
-    } else {
-      setStatus('ai-loading','[1/2] Price: '+hintPrice.toFixed(2)+' (yfinance) — fetching financials for '+label+'...');
+    // ── Populate raw market data immediately so user sees progress ──
+    const fieldMap1 = { px:'stockPrice', sh:'sharesOut', nd:'netDebt', tx:'taxRate',
+                        dv:'divPerSh', ep:'baseEPS', by:'baseYear' };
+    Object.entries(fieldMap1).forEach(([k,id])=>{
+      if(o1[k] != null && o1[k] !== '') document.getElementById(id).value = o1[k];
+    });
+    // Store cash balance globally for runway check
+    _cashBalance = (o1.cash != null && o1.cash !== '') ? Number(o1.cash) : null;
+    // Set base revenue = most recent full-year (last h entry)
+    if(Array.isArray(o1.h) && o1.h.length){
+      const lastAnn = o1.h[o1.h.length-1];
+      const rv = Array.isArray(lastAnn) ? lastAnn[1] : lastAnn.rev;
+      if(rv) document.getElementById('baseRev').value = rv;
+      histData = o1.h.map(row => Array.isArray(row)
+        ? {yr:String(row[0]), rev:Number(row[1])||0, margin:Number(row[2])||0}
+        : {yr:String(row.yr||''), rev:Number(row.rev)||0, margin:Number(row.margin)||0});
     }
+    // Company / exchange / currency
+    const co  = (o1.co  && o1.co.trim())  ? o1.co.trim()  : ticker;
+    const cur = (o1.cur && o1.cur.trim()) ? o1.cur.trim() : 'USD mm';
+    const ex  = (o1.ex  && o1.ex.trim())  ? o1.ex.trim()  : '—';
+    document.getElementById('companyInput').value  = co;
+    document.getElementById('currencyInput').value = cur;
+    document.getElementById('headerExchange').textContent = ex;
+    document.getElementById('headerCurrTag').textContent  = cur;
+    document.getElementById('headerTicker').textContent   = ticker;
+    document.getElementById('headerCompany').textContent  = co;
+    document.getElementById('footerTicker').textContent   = ticker + ' — DCF Valuation';
+    document.getElementById('tickerInput').value          = ticker;
+    document.title = ticker + ' — DCF Valuation';
+    currentTicker = ticker; currentCompany = co; currentCurrency = cur;
 
-    const o1 = await (async()=>{
-      const apiBase = (document.getElementById('apiUrl').value || 'http://localhost:8000').replace(/\/$/,'');
-      const body = {
-        model:'claude-haiku-4-5', max_tokens:1500,
-        messages:[{role:'user', content: p1}]
+    // Store quarterly actuals for later use in quarterly panel
+    _qtrData = null;
+    if(Array.isArray(o1.q) && o1.q.length){
+      // Convert to the format renderQuarterlyData expects
+      _qtrData = {
+        quarters: o1.q.map(q=>({
+          q:            q.q,
+          rev:          q.rev,
+          rev_growth:   q.rev_yoy,
+          gross_margin: null,        // not fetched in this call
+          ebitda:       q.ebitda,
+          ebitda_margin:q.ebitda_margin,
+          ebitda_growth:null
+        })),
+        avg_rev_growth:    o1.q.reduce((s,q)=>s+(q.rev_yoy||0),0)/o1.q.length,
+        avg_ebitda_margin: o1.q.reduce((s,q)=>s+(q.ebitda_margin||0),0)/o1.q.length,
+        avg_gross_margin:  null,
+        avg_ebitda_growth: null,
+        trend_rev:    'see quarters',
+        trend_margin: 'see quarters',
+        currency:     cur,
+        notes:        'Actuals from Q1 autofill fetch'
       };
-      // Only attach web_search tool when yfinance couldn't supply the price
-      if(useWebSearch) body.tools = [{"type":"web_search_20250305","name":"web_search"}];
+    }
 
-      const resp = await fetch(apiBase+'/api/ai/messages',{
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(body)
-      });
-      if(!resp.ok){ const e=await resp.json().catch(()=>({})); throw new Error(e.detail||'HTTP '+resp.status); }
-      const data = await resp.json();
-      if(data.error) throw new Error(data.error.message);
-      // web_search returns mixed content blocks; plain call returns text only
-      const textBlocks = (data.content || []).filter(c => c.type === 'text').map(c => c.text || '');
-      if(!textBlocks.length) throw new Error('No text in AI response — check API logs');
-      const raw = textBlocks[textBlocks.length - 1];
-      return extractJSON(raw);
-    })();
+    renderHistTable();
+    calculate();
 
-    // If Claude didn't return a price (rare with no-search path), backfill from hint
-    if(!o1.px && hintPrice) o1.px = hintPrice;
+    const livePrice = o1.px ? Number(o1.px).toFixed(2) : '—';
 
-    applyNumbers(o1);
-    const displayPrice = o1.px ? Number(o1.px).toFixed(2) : (hintPrice ? hintPrice.toFixed(2) : '—');
-    const priceSource  = useWebSearch ? 'web search' : 'yfinance';
-    setStatus('ai-loading','[1/2] Price: '+displayPrice+' ('+priceSource+') — generating analysis...');
+    // ── Compute quarterly averages here so they're available for status message + p2 ──
+    const qSummary = Array.isArray(o1.q) && o1.q.length
+      ? o1.q.map(q=>`${q.q}: rev=${q.rev}, ebitda_margin=${(q.ebitda_margin*100||0).toFixed(1)}%, rev_yoy=${((q.rev_yoy||0)*100).toFixed(1)}%`).join(' | ')
+      : 'no quarterly data';
+    const hSummary = Array.isArray(o1.h) && o1.h.length
+      ? o1.h.map(row=>Array.isArray(row)?`${row[0]}: rev=${row[1]}, margin=${(row[2]*100).toFixed(1)}%`:`${row.yr}: rev=${row.rev}, margin=${(row.margin*100).toFixed(1)}%`).join(' | ')
+      : 'no annual history';
+    const avgQtrGrowth = _qtrData && _qtrData.avg_rev_growth ? (_qtrData.avg_rev_growth*100).toFixed(1) : '?';
+    const avgQtrMargin = _qtrData && _qtrData.avg_ebitda_margin ? (_qtrData.avg_ebitda_margin*100).toFixed(1) : '?';
+    // Detect zero/missing averages — common for financial companies (banks, fintech, insurance)
+    const hasValidQtrData = avgQtrGrowth !== '?' && parseFloat(avgQtrGrowth) !== 0 && avgQtrMargin !== '?' && parseFloat(avgQtrMargin) !== 0;
 
-    // ══ Step C: Narrative call ══
-    setStatus('ai-loading','[2/2] Generating DCF analysis for '+label+'...');
-    const p2 = 'DCF analyst for "' + ticker + '". Return ONLY JSON no markdown. Max 75 chars per string: ' +
-      '{"why":["w1","w2","w3","w4"],' +
-      '"risks":[{"s":"HIGH","r":"title","d":"detail"},{"s":"HIGH","r":"title","d":"detail"},' +
+    setStatus('ai-loading','[1/3] Got live price: '+livePrice+(hasValidQtrData?' — anchoring to '+avgQtrGrowth+'% avg rev growth…':' — using annual history (financial co.)…'));
+
+    // ══════════════════════════════════════════════════════════════════
+    // CALL 2 — Derive DCF/Growth assumptions anchored to the actuals
+    // Pass the raw quarterly data so Claude computes, not guesses
+    // ══════════════════════════════════════════════════════════════════
+    setStatus('ai-loading','[2/3] Computing assumptions from '+label+' historical data…');
+
+    const p2 =
+      'DCF assumptions for "'+ticker+'". ' +
+      (hasValidQtrData
+        ? 'Actuals: avg 5-qtr rev growth='+avgQtrGrowth+'%, avg EBITDA/pre-tax margin='+avgQtrMargin+'%, exchange='+ex+'. '
+        : 'Quarterly avg data unavailable or zero (financial company). Use annual history: '+hSummary+'. Exchange='+ex+'. ') +
+      'RULES: g1=start from ' + (hasValidQtrData ? avgQtrGrowth+'%' : 'annual history growth') + ' with haircut if decelerating(max 1.50); ' +
+      'g2=g1*0.5 to 0.7; tg=India 0.06-0.07 US 0.02-0.03 MUST be<wc; ' +
+      'm1=' + (hasValidQtrData ? avgQtrMargin+'% actual margin +/-2pp trend adjustment' : 'derive from annual history margin') + '; ' +
+      'm5=m1+3to5pp if expanding else flat; ' +
+      'wc=India 0.12-0.16 US 0.08-0.12; da=2-5% asset-light 4-8% heavy; for banks/fintech da=1-2%; ' +
+      'cx=growth 6-12% mature 2-5%; for banks/fintech cx=1-3%; nw=2-6%; for banks/fintech nw=0-1%; ' +
+      'eg1~=g1 adjusted for leverage; eg2=eg1*0.5; ' +
+      'pe=growth-tech 20-30x fintech-growth 25-40x cyclical 12-18x India-midcap 18-25x; rr=wc+0.01. ' +
+      'Return ONLY JSON no markdown no explanation: ' +
+      '{"wc":0.10,"g1":0.18,"g2":0.10,"tg":0.03,"m1":0.18,"m5":0.22,' +
+       '"da":0.04,"cx":0.06,"nw":0.03,"eg1":0.18,"eg2":0.09,"pe":22,"rr":0.11,' +
+       '"rat_g1":"cite actual data","rat_g2":"cite actual data",' +
+       '"rat_m1":"cite actual data","rat_m5":"cite actual data"}';
+
+    let o2;
+    try {
+      o2 = await aiCall(p2, 900);
+    } catch(e) { throw new Error('Call 2 (assumptions) failed: ' + e.message); }
+
+    // Apply derived assumptions
+    const fieldMap2 = {
+      wc:'wacc', g1:'gr12', g2:'gr35', tg:'tgr',
+      m1:'em1',  m5:'em5',  da:'dna',  cx:'capex', nw:'nwc',
+      eg1:'epsGr15', eg2:'epsGr610', pe:'termPE', rr:'reqReturn'
+    };
+    Object.entries(fieldMap2).forEach(([k,id])=>{
+      if(o2[k] != null && o2[k] !== '') document.getElementById(id).value = o2[k];
+    });
+
+    // Build the "Why these growth rates?" rationale from data-anchored text
+    const whyLines = [
+      o2.rat_g1 ? 'Rev Growth Yr1-2 (' + ((o2.g1||0)*100).toFixed(0) + '%): ' + o2.rat_g1 : null,
+      o2.rat_g2 ? 'Rev Growth Yr3-5 (' + ((o2.g2||0)*100).toFixed(0) + '%): ' + o2.rat_g2 : null,
+      o2.rat_m1 ? 'EBITDA Margin Yr1 (' + ((o2.m1||0)*100).toFixed(1) + '%): ' + o2.rat_m1 : null,
+      o2.rat_m5 ? 'EBITDA Margin Yr5 (' + ((o2.m5||0)*100).toFixed(1) + '%): ' + o2.rat_m5 : null,
+      '5-Quarter avg revenue growth: ' + avgQtrGrowth + '% YoY  |  avg EBITDA margin: ' + avgQtrMargin + '%',
+    ].filter(Boolean);
+    document.getElementById('whyContent').innerHTML =
+      whyLines.map(w=>'<div>\u25B8 &nbsp;'+w+'</div>').join('');
+
+    calculate();
+    setStatus('ai-loading','[2/3] Assumptions set from actuals — generating risks & narrative…');
+
+    // ══════════════════════════════════════════════════════════════════
+    // CALL 3 — Narrative: risks, stress tests (no numbers needed here)
+    // ══════════════════════════════════════════════════════════════════
+    const p3 =
+      'DCF risk analyst for "' + ticker + '". Actual 5-quarter avg rev growth: ' + avgQtrGrowth + '%, EBITDA margin: ' + avgQtrMargin + '%. ' +
+      'Return ONLY JSON no markdown. Max 80 chars per string. No apostrophes. ' +
+      '{"risks":[{"s":"HIGH","r":"title","d":"detail"},{"s":"HIGH","r":"title","d":"detail"},' +
                '{"s":"MED","r":"title","d":"detail"},{"s":"MED","r":"title","d":"detail"},' +
                '{"s":"LOW","r":"title","d":"detail"}],' +
-      '"stress":[{"ok":true,"t":"Bull:","b":"detail"},{"ok":false,"t":"Bear:","b":"detail"},' +
+       '"stress":[{"ok":true,"t":"Bull:","b":"detail"},{"ok":false,"t":"Bear:","b":"detail"},' +
                '{"ok":true,"t":"Outlook:","b":"detail"},{"ok":false,"t":"Risk:","b":"detail"}]} ' +
-      'why=4 growth drivers. s=HIGH/MED/LOW only. ok=boolean. No apostrophes in strings.';
+      's=HIGH/MED/LOW only. ok=boolean.';
 
-    const o2 = await aiCall(p2, 1000);
+    let o3;
+    try {
+      o3 = await aiCall(p3, 900);
+    } catch(e) { throw new Error('Call 3 (narrative) failed: ' + e.message); }
 
-    if(Array.isArray(o2.why) && o2.why.length)
-      document.getElementById('whyContent').innerHTML =
-        o2.why.map(w=>'<div>\u25B8 &nbsp;'+w+'</div>').join('');
-
-    if(Array.isArray(o2.risks) && o2.risks.length){
-      riskData = o2.risks.map(x=>({severity:x.s||'MED', risk:x.r||'', detail:x.d||''}));
+    if(Array.isArray(o3.risks) && o3.risks.length){
+      riskData = o3.risks.map(x=>({severity:x.s||'MED', risk:x.r||'', detail:x.d||''}));
       renderRiskTable();
     }
-    if(Array.isArray(o2.stress) && o2.stress.length){
-      document.getElementById('stressContent').innerHTML = o2.stress.map(function(s){
+    if(Array.isArray(o3.stress) && o3.stress.length){
+      document.getElementById('stressContent').innerHTML = o3.stress.map(function(s){
         var icon = s.ok===true ? '\u2705' : '\u26A0\uFE0F';
         return '<div>'+icon+' &nbsp;<strong style="color:var(--text-bright)">'+
           (s.t||'')+'</strong> '+(s.b||'')+'</div>';
@@ -1071,11 +1210,22 @@ async function autofillWithAI(){
     }
 
     calculate();
-    setStatus('ai-ok','\u2713 '+label+' loaded. Fetching quarterly metrics…');
-    // Auto-fetch quarterly data after autofill completes
-    fetchQuarterlyData().then(()=>{
-      setStatus('ai-ok','\u2713 '+label+' loaded with live price + quarterly data. Review inputs then click \u25B6 Recalculate DCF.');
-    });
+
+    // Render quarterly panel immediately from data already fetched in Call 1
+    if(_qtrData){
+      renderQuarterlyData(_qtrData);
+    }
+
+    // ── Cash runway check + fair value haircut ──
+    checkCashRunway();
+
+    setStatus('ai-ok',
+      '\u2713 '+label+' loaded — ' +
+      (hasValidQtrData
+        ? 'assumptions anchored to '+avgQtrGrowth+'% avg revenue growth, '+avgQtrMargin+'% avg EBITDA/pre-tax margin from last 5 quarters.'
+        : 'assumptions derived from annual history (financial company — quarterly EBITDA not applicable).') +
+      ' Review inputs then click \u25B6 Recalculate DCF.'
+    );
 
   } catch(e){
     console.error('Autofill error:', e);
@@ -1158,8 +1308,97 @@ function switchTab(name){
 
 // ── QUARTERLY METRICS ──
 let _qtrData = null;
+let _cashBalance = null;        // cash + equivalents from last autofill
+let _cashRunwayOk = true;       // false = cash can't cover 6-qtr expenses → WACC haircut applied
+const CASH_RUNWAY_WACC_PENALTY = 0.02;  // add 2pp to WACC when cash is tight
 
-async function fetchQuarterlyData(){
+// ── Cash Runway Check ─────────────────────────────────────────────────────
+// Logic:  avg quarterly opex ≈ revenue × (1 − ebitda_margin) + capex estimate
+//         required cash = avg_qtr_opex × 6
+//         If cash < required → flag red + raise WACC by 2pp to reflect higher risk
+function checkCashRunway(){
+  const banner = document.getElementById('cashRunwayBanner');
+  if(!banner) return;
+
+  // Need cash balance and at least one quarter of actuals
+  if(_cashBalance == null || !_qtrData || !_qtrData.quarters || !_qtrData.quarters.length){
+    banner.style.display = 'none';
+    _cashRunwayOk = true;
+    return;
+  }
+
+  // Avg quarterly revenue from actuals
+  const validQtrs = _qtrData.quarters.filter(q => q.rev && q.rev > 0);
+  if(!validQtrs.length){ banner.style.display = 'none'; return; }
+
+  const avgQtrRev    = validQtrs.reduce((s,q)=>s+q.rev, 0) / validQtrs.length;
+  const avgEbMargin  = _qtrData.avg_ebitda_margin || 0;
+
+  // Quarterly cash burn ≈ revenue × (1 - ebitda_margin)
+  // This is a conservative proxy for operating cash outflows (COGS + SGA + interest etc.)
+  const avgQtrOpex   = avgQtrRev * (1 - avgEbMargin);
+
+  // Add a capex estimate (capex % from input or default 5%)
+  const capexPct     = parseFloat(document.getElementById('capex').value) || 0.05;
+  const avgQtrCapex  = avgQtrRev * capexPct;
+
+  const avgQtrBurn   = avgQtrOpex + avgQtrCapex;
+  const required6Qtr = avgQtrBurn * 6;
+
+  const shortfall    = required6Qtr - _cashBalance;
+  const shortfallPct = _cashBalance > 0 ? ((_cashBalance / required6Qtr) * 100).toFixed(0) : 0;
+  const covered      = _cashBalance >= required6Qtr;
+  const cur          = currentCurrency || '';
+
+  _cashRunwayOk = covered;
+
+  if(covered){
+    // Green: cash is sufficient
+    banner.className = 'cash-runway-banner crb-ok';
+    banner.innerHTML =
+      `<span class="crb-icon">✅</span>
+       <div class="crb-body">
+         <div class="crb-title">Cash Runway — Adequate</div>
+         <div class="crb-detail">
+           Cash balance <strong>${fmtC(_cashBalance)} ${cur}</strong> covers
+           <strong>${fmtC(required6Qtr)} ${cur}</strong> estimated 6-quarter expenses
+           (${shortfallPct}% of requirement — ${(shortfallPct/100*6).toFixed(1)} quarters funded).
+           No WACC adjustment applied.
+         </div>
+       </div>`;
+    banner.style.display = 'flex';
+  } else {
+    // Red: cash insufficient — apply WACC penalty
+    const currentWacc = parseFloat(document.getElementById('wacc').value) || 0.12;
+    const newWacc     = Math.round((currentWacc + CASH_RUNWAY_WACC_PENALTY) * 1000) / 1000;
+    document.getElementById('wacc').value = newWacc;
+
+    const waccPct      = (currentWacc * 100).toFixed(1);
+    const newWaccPct   = (newWacc     * 100).toFixed(1);
+
+    banner.className = 'cash-runway-banner crb-warn';
+    banner.innerHTML =
+      `<span class="crb-icon">🔴</span>
+       <div class="crb-body">
+         <div class="crb-title">⚠ Cash Runway Risk — Fair Value Reduced</div>
+         <div class="crb-detail">
+           Cash balance <strong>${fmtC(_cashBalance)} ${cur}</strong> covers only
+           <strong>${shortfallPct}%</strong> of estimated 6-quarter expenses
+           (<strong>${fmtC(required6Qtr)} ${cur}</strong> needed, shortfall
+           <strong>${fmtC(shortfall)} ${cur}</strong>).
+           Company may need to raise equity or debt within ~${(shortfallPct/100*6).toFixed(1)} quarters.
+           <br><strong style="color:var(--red)">WACC raised ${waccPct}% → ${newWaccPct}%
+           (+${(CASH_RUNWAY_WACC_PENALTY*100).toFixed(0)}pp liquidity risk premium) — fair value reduced accordingly.</strong>
+         </div>
+       </div>`;
+    banner.style.display = 'flex';
+
+    // Recalculate with new WACC
+    calculate();
+  }
+}
+
+async function fetchQuarterlyData(forceRefresh){
   if(!currentTicker){
     document.getElementById('qtrContent').innerHTML =
       '<div style="color:var(--red);padding:12px;font-size:12px">No ticker loaded — run AI Autofill first.</div>';
@@ -1169,16 +1408,28 @@ async function fetchQuarterlyData(){
   const loading = document.getElementById('qtrLoading');
   const content = document.getElementById('qtrContent');
   const checks  = document.getElementById('assumptionChecks');
+
+  // ── Fast path: autofill already fetched quarterly data in Call 1 ──
+  // Only skip the AI call when _qtrData is already populated AND this isn't
+  // a manual ↻ Refresh click (forceRefresh=true).
+  if(_qtrData && !forceRefresh){
+    loading.style.display = 'none';
+    renderQuarterlyData(_qtrData);
+    return;
+  }
+
   loading.style.display = 'block';
   content.innerHTML = '';
   checks.innerHTML   = '';
 
   const apiBase = (document.getElementById('apiUrl').value||'http://localhost:8000').replace(/\/$/,'');
-  const prompt = 'For "' + currentTicker + '" return ONLY JSON no markdown: ' +
+  // Full-detail quarterly prompt for standalone / manual refresh
+  const prompt =
+    'For "' + currentTicker + '" fetch last 5 quarters of actual results. Return ONLY JSON no markdown: ' +
     '{"quarters":[{"q":"Q1FY24","rev":0,"rev_growth":0,"gross_margin":0,"ebitda":0,"ebitda_margin":0,"ebitda_growth":0}],' +
     '"avg_rev_growth":0,"avg_gross_margin":0,"avg_ebitda_margin":0,"avg_ebitda_growth":0,' +
     '"trend_rev":"stable","trend_margin":"stable","currency":"USD mm","notes":"brief observation"} ' +
-    'Last 5 quarters actual data. rev_growth/ebitda_growth=YoY decimal. Use web search for real numbers.';
+    'rev_growth/ebitda_growth=YoY decimal. Use web search for actual reported numbers.';
 
   try {
     const resp = await fetch(apiBase + '/api/ai/messages', {
